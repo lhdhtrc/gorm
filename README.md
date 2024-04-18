@@ -1,2 +1,3 @@
 ## Gorm Extension
 - Tree
+- SetupMysql
