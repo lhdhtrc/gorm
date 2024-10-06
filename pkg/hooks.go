@@ -6,6 +6,8 @@ import (
 )
 
 func (s *TableUUIDEntity) BeforeCreate(_ *gorm.DB) (err error) {
-	s.ID = uuid.New().String()
+	if s.ID == "" {
+		s.ID = uuid.New().String()
+	}
 	return
 }
