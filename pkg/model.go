@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
@@ -32,7 +33,6 @@ type ConfigEntity struct {
 }
 
 type TableEntity struct {
-	gorm.Model
 	ID        uint           `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -40,7 +40,7 @@ type TableEntity struct {
 }
 
 type TableUUIDEntity struct {
-	ID        string         `json:"id" gorm:"primarykey;size:36;"`
+	ID        uuid.UUID      `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primarykey;size:36;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
