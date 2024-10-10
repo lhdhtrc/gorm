@@ -29,6 +29,10 @@ type ConfigEntity struct {
 	PrepareStmt            bool `json:"prepare_stmt" bson:"prepare_stmt" yaml:"prepare_stmt" mapstructure:"prepare_stmt"`
 
 	LoggerEnable bool `json:"logger_enable" bson:"logger_enable" yaml:"logger_enable" mapstructure:"logger_enable"`
+
+	loggerHandle   func(b []byte)
+	loggerConsole  bool
+	generateTables bool
 }
 
 type TableEntity struct {

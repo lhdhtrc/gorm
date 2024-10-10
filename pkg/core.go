@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool, loggerHandle func(b []byte)) (*gorm.DB, error) {
+func InstallMysql(config *ConfigEntity, tables []interface{}) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -55,7 +55,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 	var _default loger.Interface
 	if config.LoggerEnable {
 		var writer io.Writer
-		if loggerConsole {
+		if config.loggerConsole {
 			writer = os.Stdout
 		} else {
 			writer = &internal.CustomWriter{}
@@ -65,7 +65,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
-		}, loggerHandle)
+		}, config.loggerHandle)
 	}
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		SkipDefaultTransaction: config.SkipDefaultTransaction,
@@ -76,7 +76,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 		return nil, err
 	}
 
-	if len(tables) != 0 {
+	if len(tables) != 0 && config.generateTables {
 		// 初始化表结构
 		if err = db.AutoMigrate(tables...); err != nil {
 			return nil, err
@@ -92,4 +92,16 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 	d.SetConnMaxLifetime(time.Minute * time.Duration(config.ConnMaxLifeTime))
 
 	return db, nil
+}
+
+func (config *ConfigEntity) WithConsoleLogger(state bool) {
+	config.loggerConsole = state
+}
+
+func (config *ConfigEntity) WithLoggerHandle(handle func(b []byte)) {
+	config.loggerHandle = handle
+}
+
+func (config *ConfigEntity) WithGenerateTables(state bool) {
+	config.generateTables = state
 }
