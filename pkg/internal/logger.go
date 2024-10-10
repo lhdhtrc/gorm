@@ -12,7 +12,7 @@ import (
 )
 
 // New initialize CustomLogger
-func New(writer loger.Writer, config loger.Config, console bool, handle func(b []byte)) loger.Interface {
+func New(writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -41,7 +41,6 @@ func New(writer loger.Writer, config loger.Config, console bool, handle func(b [
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 		handle:       handle,
-		console:      console,
 	}
 }
 
@@ -157,8 +156,6 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 type CustomWriter struct{}
 
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
-	//s := log.New(os.Stdout, "\r\n", log.LstdFlags)
-	fmt.Println(string(p))
 	return len(p), nil
 }
 

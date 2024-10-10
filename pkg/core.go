@@ -8,6 +8,7 @@ import (
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -53,11 +54,18 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 
 	var _default loger.Interface
 	if config.LoggerEnable {
-		_default = internal.New(log.New(&internal.CustomWriter{}, "\r\n", log.LstdFlags), loger.Config{
+		var writer io.Writer
+		if loggerConsole {
+			writer = os.Stdout
+		} else {
+			writer = &internal.CustomWriter{}
+		}
+
+		_default = internal.New(log.New(writer, "\r\n", log.LstdFlags), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
-		}, loggerConsole, loggerHandle)
+		}, loggerHandle)
 	}
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		SkipDefaultTransaction: config.SkipDefaultTransaction,
