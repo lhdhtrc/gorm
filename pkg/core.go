@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func InstallMysql(config *ConfigEntity) (*gorm.DB, error) {
+func InstallMysql(config *ConfigEntity, tables []interface{}) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -76,9 +76,9 @@ func InstallMysql(config *ConfigEntity) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	if len(config.generateTables) != 0 && config.autoMigrate {
+	if len(tables) != 0 && config.autoMigrate {
 		// 初始化表结构
-		if err = db.AutoMigrate(config.generateTables...); err != nil {
+		if err = db.AutoMigrate(tables...); err != nil {
 			return nil, err
 		}
 	}
@@ -100,10 +100,6 @@ func (config *ConfigEntity) WithConsoleLogger(state bool) {
 
 func (config *ConfigEntity) WithLoggerHandle(handle func(b []byte)) {
 	config.loggerHandle = handle
-}
-
-func (config *ConfigEntity) WithGenerateTables(tables []interface{}) {
-	config.generateTables = tables
 }
 
 func (config *ConfigEntity) WithAutoMigrate(state bool) {
