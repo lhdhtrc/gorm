@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"github.com/lhdhtrc/gorm/pkg/internal"
-	"go.uber.org/zap"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
@@ -15,7 +14,7 @@ import (
 	"time"
 )
 
-func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}) (*gorm.DB, error) {
+func InstallMysql(config *ConfigEntity, tables []interface{}, loggerHandle func(b []byte)) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -55,11 +54,11 @@ func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}
 
 	var _default loger.Interface
 	if config.LoggerEnable {
-		_default = loger.New(internal.NewWriter(log.New(os.Stdout, "\r\n", log.LstdFlags), logger), loger.Config{
+		_default = internal.New(log.New(os.Stdout, "\r\n", log.LstdFlags), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
-		})
+		}, loggerHandle)
 	}
 	db, _oe := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		SkipDefaultTransaction: config.SkipDefaultTransaction,
