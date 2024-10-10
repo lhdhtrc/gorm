@@ -9,16 +9,13 @@ import (
 	"go.uber.org/zap"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
+	loger "gorm.io/gorm/logger"
 	"log"
 	"os"
 	"time"
 )
 
-func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}) *gorm.DB {
-	logPrefix := "install mysql"
-	logger.Info(fmt.Sprintf("%s start ->", logPrefix))
-
+func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -35,15 +32,13 @@ func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}
 		certPool := x509.NewCertPool()
 		CAFile, CAErr := os.ReadFile(config.Tls.CaCert)
 		if CAErr != nil {
-			logger.Error(fmt.Sprintf("%s read %s error: %s", logPrefix, config.Tls.CaCert, CAErr.Error()))
-			return nil
+			return nil, CAErr
 		}
 		certPool.AppendCertsFromPEM(CAFile)
 
 		clientCert, clientCertErr := tls.LoadX509KeyPair(config.Tls.ClientCert, config.Tls.ClientCertKey)
 		if clientCertErr != nil {
-			logger.Error(fmt.Sprintf("%s tls.LoadX509KeyPair err: %v", logPrefix, clientCertErr))
-			return nil
+			return nil, clientCertErr
 		}
 
 		tlsConfig := tls.Config{
@@ -52,18 +47,17 @@ func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}
 		}
 
 		if err := mysql.RegisterTLSConfig("custom", &tlsConfig); err != nil {
-			logger.Error(fmt.Sprintf("%s tls.LoadX509KeyPair err: %v", logPrefix, err.Error()))
-			return nil
+			return nil, err
 		}
 
 		clientOptions.TLSConfig = "custom"
 	}
 
-	var _default gormLogger.Interface
+	var _default loger.Interface
 	if config.LoggerEnable {
-		_default = gormLogger.New(internal.NewWriter(log.New(os.Stdout, "\r\n", log.LstdFlags), logger), gormLogger.Config{
+		_default = loger.New(internal.NewWriter(log.New(os.Stdout, "\r\n", log.LstdFlags), logger), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
-			LogLevel:      gormLogger.Info,
+			LogLevel:      loger.Info,
 			Colorful:      true,
 		})
 	}
@@ -85,13 +79,11 @@ func InstallMysql(logger *zap.Logger, config *ConfigEntity, tables []interface{}
 
 	d, _de := db.DB()
 	if _de != nil {
-		panic(fmt.Errorf("gorm open db error: %s", _de))
+		return nil, _de
 	}
 	d.SetMaxOpenConns(config.MaxOpenConnects)
 	d.SetMaxIdleConns(config.MaxIdleConnects)
 	d.SetConnMaxLifetime(time.Minute * time.Duration(config.ConnMaxLifeTime))
 
-	logger.Info(fmt.Sprintf("%s success ->", logPrefix))
-
-	return db
+	return db, nil
 }
