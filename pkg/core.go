@@ -8,6 +8,7 @@ import (
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
+	"log"
 	"os"
 	"time"
 )
@@ -52,7 +53,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 
 	var _default loger.Interface
 	if config.LoggerEnable {
-		_default = internal.New(&internal.CustomLogger{}, loger.Config{
+		_default = internal.New(log.New(&internal.CustomWriter{}, "\r\n", log.LstdFlags), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
