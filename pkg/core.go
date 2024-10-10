@@ -94,7 +94,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}) (*gorm.DB, error) 
 	return db, nil
 }
 
-func (config *ConfigEntity) WithConsoleLogger(state bool) {
+func (config *ConfigEntity) WithLoggerConsole(state bool) {
 	config.loggerConsole = state
 }
 
