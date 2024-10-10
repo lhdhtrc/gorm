@@ -61,7 +61,7 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerConsole bool
 			writer = &internal.CustomWriter{}
 		}
 
-		_default = internal.New(log.New(writer, "\r", log.LstdFlags), loger.Config{
+		_default = internal.New(log.New(writer, "\r\n", log.LstdFlags), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
