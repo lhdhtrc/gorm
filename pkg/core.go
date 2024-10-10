@@ -3,9 +3,9 @@ package gorm
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"github.com/lhdhtrc/gorm/pkg/internal"
+	"go.uber.org/zap"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func InstallMysql(config *ConfigEntity, tables []interface{}, loggerHandle func(b []byte)) (*gorm.DB, error) {
+func InstallMysql(config *ConfigEntity, tables []interface{}, logger *zap.Logger, loggerHandle func(b []byte)) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -54,25 +54,25 @@ func InstallMysql(config *ConfigEntity, tables []interface{}, loggerHandle func(
 
 	var _default loger.Interface
 	if config.LoggerEnable {
-		_default = internal.New(log.New(os.Stdout, "\r\n", log.LstdFlags), loger.Config{
+		_default = internal.New(internal.NewWriter(logger, log.New(os.Stdout, "\r\n", log.LstdFlags)), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
 		}, loggerHandle)
 	}
-	db, _oe := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
+	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		SkipDefaultTransaction: config.SkipDefaultTransaction,
 		PrepareStmt:            config.PrepareStmt,
 		Logger:                 _default,
 	})
-	if _oe != nil {
-		panic(fmt.Errorf("gorm open mysql error: %s", _oe))
+	if err != nil {
+		return nil, err
 	}
 
 	if len(tables) != 0 {
 		// 初始化表结构
-		if _te := db.AutoMigrate(tables...); _te != nil {
-			panic(fmt.Errorf("gorm db batch create table error: %s", _te))
+		if err = db.AutoMigrate(tables...); err != nil {
+			return nil, err
 		}
 	}
 
