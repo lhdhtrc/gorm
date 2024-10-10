@@ -30,9 +30,10 @@ type ConfigEntity struct {
 
 	LoggerEnable bool `json:"logger_enable" bson:"logger_enable" yaml:"logger_enable" mapstructure:"logger_enable"`
 
+	autoMigrate    bool
+	generateTables []interface{}
 	loggerHandle   func(b []byte)
 	loggerConsole  bool
-	generateTables bool
 }
 
 type TableEntity struct {
