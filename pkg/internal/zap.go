@@ -18,6 +18,5 @@ func NewWriter(l *zap.Logger, w logger.Writer) *Writer {
 
 // Printf 格式化打印日志
 func (w *Writer) Printf(message string, data ...interface{}) {
-	zap.L().Info(fmt.Sprintf(message, data...))
-	w.writer.Printf(message, data)
+	w.logger.Info(fmt.Sprintf(message, data...))
 }
