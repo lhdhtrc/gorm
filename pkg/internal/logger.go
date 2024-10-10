@@ -12,7 +12,7 @@ import (
 )
 
 // New initialize CustomLogger
-func New(writer loger.Writer, config loger.Config, loggerHandle func(b []byte)) loger.Interface {
+func New(writer loger.Writer, config loger.Config, console bool, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -40,7 +40,8 @@ func New(writer loger.Writer, config loger.Config, loggerHandle func(b []byte)) 
 		traceStr:     traceStr,
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
-		loggerHandle: loggerHandle,
+		handle:       handle,
+		console:      console,
 	}
 }
 
@@ -49,14 +50,15 @@ type CustomLogger struct {
 	loger.Config
 	infoStr, warnStr, errStr            string
 	traceStr, traceErrStr, traceWarnStr string
-	loggerHandle                        func(b []byte)
+	handle                              func(b []byte)
+	console                             bool
 }
 
 // LogMode log mode
 func (l *CustomLogger) LogMode(level loger.LogLevel) loger.Interface {
-	newlogger := *l
-	newlogger.LogLevel = level
-	return &newlogger
+	newLogger := *l
+	newLogger.LogLevel = level
+	return &newLogger
 }
 
 // Info print info
@@ -97,7 +99,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 		} else {
 			l.Printf(l.traceErrStr, file, err, timer, rows, sql)
 		}
-		if l.loggerHandle != nil {
+		if l.handle != nil {
 			logMap := make(map[string]interface{})
 			logMap["Statement"] = sql
 			logMap["Result"] = err
@@ -106,7 +108,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Type"] = "Mysql"
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
-			l.loggerHandle(b)
+			l.handle(b)
 		}
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= loger.Warn:
 		sql, rows := fc()
@@ -118,7 +120,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 		} else {
 			l.Printf(l.traceWarnStr, file, slowLog, timer, rows, sql)
 		}
-		if l.loggerHandle != nil {
+		if l.handle != nil {
 			logMap := make(map[string]interface{})
 			logMap["Statement"] = sql
 			logMap["Result"] = slowLog
@@ -127,7 +129,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Type"] = "Mysql"
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
-			l.loggerHandle(b)
+			l.handle(b)
 		}
 	case l.LogLevel == loger.Info:
 		sql, rows := fc()
@@ -138,7 +140,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 		} else {
 			l.Printf(l.traceStr, file, timer, rows, sql)
 		}
-		if l.loggerHandle != nil {
+		if l.handle != nil {
 			logMap := make(map[string]interface{})
 			logMap["Statement"] = sql
 			logMap["Result"] = "success"
@@ -147,9 +149,17 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Type"] = "Mysql"
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
-			l.loggerHandle(b)
+			l.handle(b)
 		}
 	}
+}
+
+type CustomWriter struct{}
+
+func (cw *CustomWriter) Write(p []byte) (n int, err error) {
+	//s := log.New(os.Stdout, "\r\n", log.LstdFlags)
+	fmt.Println(string(p))
+	return len(p), nil
 }
 
 type LoggerEventEntity struct {
