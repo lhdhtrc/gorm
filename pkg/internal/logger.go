@@ -12,7 +12,7 @@ import (
 )
 
 // New initialize CustomLogger
-func New(writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
+func New(prefix string, writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -41,6 +41,7 @@ func New(writer loger.Writer, config loger.Config, handle func(b []byte)) loger.
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 		handle:       handle,
+		prefix:       prefix,
 	}
 }
 
@@ -50,7 +51,7 @@ type CustomLogger struct {
 	infoStr, warnStr, errStr            string
 	traceStr, traceErrStr, traceWarnStr string
 	handle                              func(b []byte)
-	console                             bool
+	prefix                              string
 }
 
 // LogMode log mode
@@ -104,7 +105,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Result"] = err
 			logMap["Level"] = "error"
 			logMap["Timer"] = timer
-			logMap["Type"] = "Mysql"
+			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
@@ -125,7 +126,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Result"] = slowLog
 			logMap["Level"] = "warning"
 			logMap["Timer"] = timer
-			logMap["Type"] = "Mysql"
+			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
@@ -145,7 +146,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Result"] = "success"
 			logMap["Level"] = "info"
 			logMap["Timer"] = timer
-			logMap["Type"] = "Mysql"
+			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
