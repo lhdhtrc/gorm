@@ -14,6 +14,7 @@ type TLSEntity struct {
 type ConfigEntity struct {
 	Tls TLSEntity `json:"tls" bson:"tls" yaml:"tls" mapstructure:"tls"`
 
+	Prefix   string `json:"prefix" bson:"prefix" yaml:"prefix" mapstructure:"prefix"`
 	Account  string `json:"account" bson:"account" yaml:"account" mapstructure:"account"`
 	Password string `json:"password" bson:"password" yaml:"password" mapstructure:"password"`
 
