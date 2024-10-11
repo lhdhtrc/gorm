@@ -158,11 +158,3 @@ type CustomWriter struct{}
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
-
-type LoggerEventEntity struct {
-	Statement string `json:"statement"`
-	Result    string `json:"result"`
-	Level     string `json:"level"`
-	Timer     string `json:"timer"`
-	Type      string `json:"type"`
-}
