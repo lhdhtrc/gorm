@@ -49,12 +49,3 @@ type TableUUIDEntity struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
-
-type TreeOptions struct {
-	DB      *gorm.DB
-	Table   string
-	AppId   string
-	Id      string
-	Preload []string
-	Lazy    bool
-}
