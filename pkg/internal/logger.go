@@ -102,7 +102,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 		if l.handle != nil {
 			logMap := make(map[string]interface{})
 			logMap["Statement"] = sql
-			logMap["Result"] = err
+			logMap["Result"] = err.Error()
 			logMap["Level"] = "error"
 			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
 			logMap["Type"] = l.prefix
