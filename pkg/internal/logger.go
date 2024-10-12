@@ -104,7 +104,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Statement"] = sql
 			logMap["Result"] = err
 			logMap["Level"] = "error"
-			logMap["Timer"] = timer
+			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
 			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
@@ -125,7 +125,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Statement"] = sql
 			logMap["Result"] = slowLog
 			logMap["Level"] = "warning"
-			logMap["Timer"] = timer
+			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
 			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
@@ -145,7 +145,7 @@ func (l *CustomLogger) Trace(_ context.Context, begin time.Time, fc func() (stri
 			logMap["Statement"] = sql
 			logMap["Result"] = "success"
 			logMap["Level"] = "info"
-			logMap["Timer"] = timer
+			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
 			logMap["Type"] = l.prefix
 			logMap["Path"] = file
 			b, _ := json.Marshal(logMap)
