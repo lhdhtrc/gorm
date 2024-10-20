@@ -110,6 +110,7 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 			logMap["path"] = file
 
 			md, _ := metadata.FromIncomingContext(ctx)
+			fmt.Println(md)
 			if gd := md.Get("trace-id"); len(gd) != 0 {
 				logMap["trace_id"] = gd[0]
 			}
