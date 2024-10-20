@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"google.golang.org/grpc/metadata"
 	"time"
 
 	loger "gorm.io/gorm/logger"
@@ -84,7 +85,8 @@ func (l *CustomLogger) Error(_ context.Context, msg string, data ...interface{})
 
 // Trace print sql message
 func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	fmt.Println(ctx.Value("trace-id"))
+	md, _ := metadata.FromIncomingContext(ctx)
+	fmt.Println(md.Get("trace-id"))
 
 	if l.LogLevel <= loger.Silent {
 		return
