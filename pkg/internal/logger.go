@@ -85,9 +85,6 @@ func (l *CustomLogger) Error(_ context.Context, msg string, data ...interface{})
 
 // Trace print sql message
 func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	fmt.Println(md.Get("trace-id"))
-
 	if l.LogLevel <= loger.Silent {
 		return
 	}
@@ -105,12 +102,24 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		}
 		if l.handle != nil {
 			logMap := make(map[string]interface{})
-			logMap["Statement"] = sql
-			logMap["Result"] = err.Error()
-			logMap["Level"] = "error"
-			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["Type"] = l.prefix
-			logMap["Path"] = file
+			logMap["statement"] = sql
+			logMap["result"] = err.Error()
+			logMap["level"] = "error"
+			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
+			logMap["type"] = l.prefix
+			logMap["path"] = file
+
+			md, _ := metadata.FromIncomingContext(ctx)
+			if gd := md.Get("trace-id"); len(gd) != 0 {
+				logMap["trace_id"] = gd[0]
+			}
+			if gd := md.Get("account-id"); len(gd) != 0 {
+				logMap["account_id"] = gd[0]
+			}
+			if gd := md.Get("app-id"); len(gd) != 0 {
+				logMap["invoke_app_id"] = gd[0]
+			}
+
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
 		}
