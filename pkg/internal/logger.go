@@ -109,8 +109,7 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 			logMap["type"] = l.prefix
 			logMap["path"] = file
 
-			md, err := metadata.FromIncomingContext(ctx)
-			fmt.Println(md, err)
+			md, _ := metadata.FromIncomingContext(ctx)
 			if gd := md.Get("trace-id"); len(gd) != 0 {
 				logMap["trace_id"] = gd[0]
 			}
@@ -136,12 +135,24 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		}
 		if l.handle != nil {
 			logMap := make(map[string]interface{})
-			logMap["Statement"] = sql
-			logMap["Result"] = slowLog
-			logMap["Level"] = "warning"
-			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["Type"] = l.prefix
-			logMap["Path"] = file
+			logMap["statement"] = sql
+			logMap["result"] = slowLog
+			logMap["level"] = "warning"
+			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
+			logMap["type"] = l.prefix
+			logMap["path"] = file
+
+			md, _ := metadata.FromIncomingContext(ctx)
+			if gd := md.Get("trace-id"); len(gd) != 0 {
+				logMap["trace_id"] = gd[0]
+			}
+			if gd := md.Get("account-id"); len(gd) != 0 {
+				logMap["account_id"] = gd[0]
+			}
+			if gd := md.Get("app-id"); len(gd) != 0 {
+				logMap["invoke_app_id"] = gd[0]
+			}
+
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
 		}
@@ -156,12 +167,24 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		}
 		if l.handle != nil {
 			logMap := make(map[string]interface{})
-			logMap["Statement"] = sql
-			logMap["Result"] = "success"
-			logMap["Level"] = "info"
-			logMap["Timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["Type"] = l.prefix
-			logMap["Path"] = file
+			logMap["statement"] = sql
+			logMap["result"] = "success"
+			logMap["level"] = "info"
+			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
+			logMap["type"] = l.prefix
+			logMap["path"] = file
+
+			md, _ := metadata.FromIncomingContext(ctx)
+			if gd := md.Get("trace-id"); len(gd) != 0 {
+				logMap["trace_id"] = gd[0]
+			}
+			if gd := md.Get("account-id"); len(gd) != 0 {
+				logMap["account_id"] = gd[0]
+			}
+			if gd := md.Get("app-id"); len(gd) != 0 {
+				logMap["invoke_app_id"] = gd[0]
+			}
+
 			b, _ := json.Marshal(logMap)
 			l.handle(b)
 		}
