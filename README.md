@@ -9,12 +9,10 @@ package main
 
 import (
 	gorm "github.com/lhdhtrc/gorm/pkg"
-	"go.uber.org/zap"
 )
 
 func main() {
-	logger, _ := zap.NewProduction()
-	gorm.InstallMysql(logger, &gorm.ConfigEntity{}, []interface{})
+	gorm.NewMysql(&gorm.Config{}, []interface{})
 }
 ```
 
