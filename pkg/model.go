@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-type TLSEntity struct {
+type TLS struct {
 	CaCert        string `json:"ca_cert" bson:"ca_cert" yaml:"ca_cert" mapstructure:"ca_cert"`
 	ClientCert    string `json:"client_cert" bson:"client_cert" yaml:"client_cert" mapstructure:"client_cert"`
 	ClientCertKey string `json:"client_cert_key" bson:"client_cert_key" yaml:"client_cert_key" mapstructure:"client_cert_key"`
 }
 
-type ConfigEntity struct {
-	Tls TLSEntity `json:"tls" bson:"tls" yaml:"tls" mapstructure:"tls"`
+type Config struct {
+	Tls TLS `json:"tls" bson:"tls" yaml:"tls" mapstructure:"tls"`
 
 	Prefix   string `json:"prefix" bson:"prefix" yaml:"prefix" mapstructure:"prefix"`
 	Account  string `json:"account" bson:"account" yaml:"account" mapstructure:"account"`
@@ -36,14 +36,14 @@ type ConfigEntity struct {
 	loggerConsole bool
 }
 
-type TableEntity struct {
+type Table struct {
 	ID        uint           `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
-type TableUUIDEntity struct {
+type TableUUID struct {
 	ID        string         `json:"id" gorm:"primarykey;size:36;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

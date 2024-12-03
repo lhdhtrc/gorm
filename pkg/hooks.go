@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *TableUUIDEntity) BeforeCreate(_ *gorm.DB) (err error) {
+func (s *TableUUID) BeforeCreate(_ *gorm.DB) (err error) {
 	if s.ID == "" {
 		s.ID = uuid.New().String()
 	}

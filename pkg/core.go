@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func InstallMysql(config *ConfigEntity, tables []interface{}) (*gorm.DB, error) {
+func NewMysql(config *Config, tables []interface{}) (*gorm.DB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
 		Addr:      config.Address,
@@ -94,14 +94,14 @@ func InstallMysql(config *ConfigEntity, tables []interface{}) (*gorm.DB, error) 
 	return db, nil
 }
 
-func (config *ConfigEntity) WithLoggerConsole(state bool) {
+func (config *Config) WithLoggerConsole(state bool) {
 	config.loggerConsole = state
 }
 
-func (config *ConfigEntity) WithLoggerHandle(handle func(b []byte)) {
+func (config *Config) WithLoggerHandle(handle func(b []byte)) {
 	config.loggerHandle = handle
 }
 
-func (config *ConfigEntity) WithAutoMigrate(state bool) {
+func (config *Config) WithAutoMigrate(state bool) {
 	config.autoMigrate = state
 }
