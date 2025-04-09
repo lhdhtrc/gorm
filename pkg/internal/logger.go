@@ -12,8 +12,12 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+const (
+	ResultSuccess = "success"
+)
+
 // New initialize CustomLogger
-func New(prefix string, writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
+func New(database string, dType int32, writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -32,7 +36,7 @@ func New(prefix string, writer loger.Writer, config loger.Config, handle func(b 
 		traceErrStr = loger.RedBold + "%s " + loger.MagentaBold + "%s\n" + loger.Reset + loger.Yellow + "[%.3fms] " + loger.BlueBold + "[rows:%v]" + loger.Reset + " %s"
 	}
 
-	return &CustomLogger{
+	return &logger{
 		Writer:       writer,
 		Config:       config,
 		infoStr:      infoStr,
@@ -42,49 +46,51 @@ func New(prefix string, writer loger.Writer, config loger.Config, handle func(b 
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 		handle:       handle,
-		prefix:       prefix,
+		database:     database,
+		databaseType: dType,
 	}
 }
 
-type CustomLogger struct {
+type logger struct {
 	loger.Writer
 	loger.Config
 	infoStr, warnStr, errStr            string
 	traceStr, traceErrStr, traceWarnStr string
+	database                            string
+	databaseType                        int32
 	handle                              func(b []byte)
-	prefix                              string
 }
 
 // LogMode log mode
-func (l *CustomLogger) LogMode(level loger.LogLevel) loger.Interface {
+func (l *logger) LogMode(level loger.LogLevel) loger.Interface {
 	newLogger := *l
 	newLogger.LogLevel = level
 	return &newLogger
 }
 
 // Info print info
-func (l *CustomLogger) Info(_ context.Context, msg string, data ...interface{}) {
+func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= loger.Info {
 		l.Printf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Warn print warn messages
-func (l *CustomLogger) Warn(_ context.Context, msg string, data ...interface{}) {
+func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= loger.Warn {
 		l.Printf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Error print error messages
-func (l *CustomLogger) Error(_ context.Context, msg string, data ...interface{}) {
+func (l *logger) Error(_ context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= loger.Error {
 		l.Printf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Trace print sql message
-func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	if l.LogLevel <= loger.Silent {
 		return
 	}
@@ -100,29 +106,8 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		} else {
 			l.Printf(l.traceErrStr, file, err, timer, rows, sql)
 		}
-		if l.handle != nil {
-			logMap := make(map[string]interface{})
-			logMap["statement"] = sql
-			logMap["result"] = err.Error()
-			logMap["level"] = "error"
-			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["type"] = l.prefix
-			logMap["path"] = file
+		l.handleLog(ctx, 4, file, sql, err.Error(), elapsed)
 
-			md, _ := metadata.FromIncomingContext(ctx)
-			if gd := md.Get("trace-id"); len(gd) != 0 {
-				logMap["trace_id"] = gd[0]
-			}
-			if gd := md.Get("account-id"); len(gd) != 0 {
-				logMap["account_id"] = gd[0]
-			}
-			if gd := md.Get("app-id"); len(gd) != 0 {
-				logMap["invoke_app_id"] = gd[0]
-			}
-
-			b, _ := json.Marshal(logMap)
-			l.handle(b)
-		}
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= loger.Warn:
 		sql, rows := fc()
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
@@ -133,29 +118,8 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		} else {
 			l.Printf(l.traceWarnStr, file, slowLog, timer, rows, sql)
 		}
-		if l.handle != nil {
-			logMap := make(map[string]interface{})
-			logMap["statement"] = sql
-			logMap["result"] = slowLog
-			logMap["level"] = "warning"
-			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["type"] = l.prefix
-			logMap["path"] = file
+		l.handleLog(ctx, 3, file, sql, slowLog, elapsed)
 
-			md, _ := metadata.FromIncomingContext(ctx)
-			if gd := md.Get("trace-id"); len(gd) != 0 {
-				logMap["trace_id"] = gd[0]
-			}
-			if gd := md.Get("account-id"); len(gd) != 0 {
-				logMap["account_id"] = gd[0]
-			}
-			if gd := md.Get("app-id"); len(gd) != 0 {
-				logMap["invoke_app_id"] = gd[0]
-			}
-
-			b, _ := json.Marshal(logMap)
-			l.handle(b)
-		}
 	case l.LogLevel == loger.Info:
 		sql, rows := fc()
 		timer := float64(elapsed.Nanoseconds()) / 1e6
@@ -165,27 +129,33 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 		} else {
 			l.Printf(l.traceStr, file, timer, rows, sql)
 		}
-		if l.handle != nil {
-			logMap := make(map[string]interface{})
-			logMap["statement"] = sql
-			logMap["result"] = "success"
-			logMap["level"] = "info"
-			logMap["timer"] = fmt.Sprintf("%.3fms", timer)
-			logMap["type"] = l.prefix
-			logMap["path"] = file
+		l.handleLog(ctx, 1, file, sql, ResultSuccess, elapsed)
+	}
+}
 
-			md, _ := metadata.FromIncomingContext(ctx)
-			if gd := md.Get("trace-id"); len(gd) != 0 {
-				logMap["trace_id"] = gd[0]
-			}
-			if gd := md.Get("account-id"); len(gd) != 0 {
-				logMap["account_id"] = gd[0]
-			}
-			if gd := md.Get("app-id"); len(gd) != 0 {
-				logMap["invoke_app_id"] = gd[0]
-			}
-
-			b, _ := json.Marshal(logMap)
+// handleLog 统一处理日志记录
+func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt, result string, elapsed time.Duration) {
+	if l.handle != nil {
+		logMap := map[string]interface{}{
+			"Database":  l.database,
+			"Statement": smt,
+			"Result":    result,
+			"Duration":  elapsed.Milliseconds(),
+			"Level":     level,
+			"Path":      path,
+			"Type":      l.databaseType,
+		}
+		md, _ := metadata.FromIncomingContext(ctx)
+		if gd := md.Get("trace-id"); len(gd) != 0 {
+			logMap["trace_id"] = gd[0]
+		}
+		if gd := md.Get("account-id"); len(gd) != 0 {
+			logMap["account_id"] = gd[0]
+		}
+		if gd := md.Get("app-id"); len(gd) != 0 {
+			logMap["invoke_app_id"] = gd[0]
+		}
+		if b, err := json.Marshal(logMap); err == nil {
 			l.handle(b)
 		}
 	}
