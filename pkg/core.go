@@ -23,8 +23,8 @@ func NewMysql(config *Config, tables []interface{}) (*gorm.DB, error) {
 		ParseTime: true,
 	}
 
-	if config.Account != "" && config.Password != "" {
-		clientOptions.User = config.Account
+	if config.Username != "" && config.Password != "" {
+		clientOptions.User = config.Username
 		clientOptions.Passwd = config.Password
 	}
 	if config.Tls.CaCert != "" && config.Tls.ClientCert != "" && config.Tls.ClientCertKey != "" {
@@ -53,7 +53,7 @@ func NewMysql(config *Config, tables []interface{}) (*gorm.DB, error) {
 	}
 
 	var _default loger.Interface
-	if config.LoggerEnable {
+	if config.Logger {
 		var writer io.Writer
 		if config.loggerConsole {
 			writer = os.Stdout
@@ -61,7 +61,7 @@ func NewMysql(config *Config, tables []interface{}) (*gorm.DB, error) {
 			writer = &internal.CustomWriter{}
 		}
 
-		_default = internal.New(config.Prefix, log.New(writer, "\r", log.LstdFlags), loger.Config{
+		_default = internal.New(config.Database, config.Type, log.New(writer, "\r", log.LstdFlags), loger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			LogLevel:      loger.Info,
 			Colorful:      true,
