@@ -16,8 +16,17 @@ const (
 	ResultSuccess = "success"
 )
 
+// Config 包含日志记录器的配置参数
+type Config struct {
+	loger.Config
+
+	Console      bool   // 控制台是否输出日志
+	Database     string // 数据库
+	DatabaseType int32  // 数据库类型
+}
+
 // New initialize CustomLogger
-func New(database string, dType int32, writer loger.Writer, config loger.Config, handle func(b []byte)) loger.Interface {
+func New(config Config, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -37,8 +46,7 @@ func New(database string, dType int32, writer loger.Writer, config loger.Config,
 	}
 
 	return &logger{
-		Writer:       writer,
-		Config:       config,
+		Config:       config.Config,
 		infoStr:      infoStr,
 		warnStr:      warnStr,
 		errStr:       errStr,
@@ -46,18 +54,19 @@ func New(database string, dType int32, writer loger.Writer, config loger.Config,
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 		handle:       handle,
-		database:     database,
-		databaseType: dType,
+		console:      config.Console,
+		database:     config.Database,
+		databaseType: config.DatabaseType,
 	}
 }
 
 type logger struct {
-	loger.Writer
 	loger.Config
 	infoStr, warnStr, errStr            string
 	traceStr, traceErrStr, traceWarnStr string
 	database                            string
 	databaseType                        int32
+	console                             bool
 	handle                              func(b []byte)
 }
 
@@ -70,22 +79,22 @@ func (l *logger) LogMode(level loger.LogLevel) loger.Interface {
 
 // Info print info
 func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
-	if l.LogLevel >= loger.Info {
-		l.Printf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	if l.console && l.LogLevel >= loger.Info {
+		fmt.Println(fmt.Sprintf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
 	}
 }
 
 // Warn print warn messages
 func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
-	if l.LogLevel >= loger.Warn {
-		l.Printf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	if l.console && l.LogLevel >= loger.Warn {
+		fmt.Println(fmt.Sprintf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
 	}
 }
 
 // Error print error messages
 func (l *logger) Error(_ context.Context, msg string, data ...interface{}) {
-	if l.LogLevel >= loger.Error {
-		l.Printf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	if l.console && l.LogLevel >= loger.Error {
+		fmt.Println(fmt.Sprintf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
 	}
 }
 
@@ -101,10 +110,12 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		sql, rows := fc()
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		file := utils.FileWithLineNum()
-		if rows == -1 {
-			l.Printf(l.traceErrStr, file, err, timer, "-", sql)
-		} else {
-			l.Printf(l.traceErrStr, file, err, timer, rows, sql)
+		if l.console {
+			if rows == -1 {
+				fmt.Println(fmt.Sprintf(l.traceErrStr, file, err, timer, "-", sql))
+			} else {
+				fmt.Println(fmt.Sprintf(l.traceErrStr, file, err, timer, rows, sql))
+			}
 		}
 		l.handleLog(ctx, 4, file, sql, err.Error(), elapsed)
 
@@ -113,10 +124,12 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		file := utils.FileWithLineNum()
-		if rows == -1 {
-			l.Printf(l.traceWarnStr, file, slowLog, timer, "-", sql)
-		} else {
-			l.Printf(l.traceWarnStr, file, slowLog, timer, rows, sql)
+		if l.console {
+			if rows == -1 {
+				fmt.Println(fmt.Sprintf(l.traceWarnStr, file, slowLog, timer, "-", sql))
+			} else {
+				fmt.Println(fmt.Sprintf(l.traceWarnStr, file, slowLog, timer, rows, sql))
+			}
 		}
 		l.handleLog(ctx, 3, file, sql, slowLog, elapsed)
 
@@ -124,10 +137,12 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		sql, rows := fc()
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		file := utils.FileWithLineNum()
-		if rows == -1 {
-			l.Printf(l.traceStr, file, timer, "-", sql)
-		} else {
-			l.Printf(l.traceStr, file, timer, rows, sql)
+		if l.console {
+			if rows == -1 {
+				fmt.Println(fmt.Sprintf(l.traceStr, file, timer, "-", sql))
+			} else {
+				fmt.Println(fmt.Sprintf(l.traceStr, file, timer, rows, sql))
+			}
 		}
 		l.handleLog(ctx, 1, file, sql, ResultSuccess, elapsed)
 	}
@@ -159,10 +174,4 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 			l.handle(b)
 		}
 	}
-}
-
-type CustomWriter struct{}
-
-func (cw *CustomWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
 }

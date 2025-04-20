@@ -8,8 +8,6 @@ import (
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
-	"io"
-	"log"
 	"os"
 	"time"
 )
@@ -54,17 +52,15 @@ func NewMysql(config *Config, tables []interface{}) (*gorm.DB, error) {
 
 	var _default loger.Interface
 	if config.Logger {
-		var writer io.Writer
-		if config.loggerConsole {
-			writer = os.Stdout
-		} else {
-			writer = &internal.CustomWriter{}
-		}
-
-		_default = internal.New(config.Database, config.Type, log.New(writer, "\r", log.LstdFlags), loger.Config{
-			SlowThreshold: 200 * time.Millisecond,
-			LogLevel:      loger.Info,
-			Colorful:      true,
+		_default = internal.New(internal.Config{
+			Config: loger.Config{
+				SlowThreshold: 200 * time.Millisecond,
+				LogLevel:      loger.Info,
+				Colorful:      true,
+			},
+			Console:      config.loggerConsole,
+			Database:     config.Database,
+			DatabaseType: config.Type,
 		}, config.loggerHandle)
 	}
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
