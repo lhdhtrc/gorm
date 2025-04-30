@@ -33,7 +33,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		clientOptions.User = mc.Conf.Username
 		clientOptions.Passwd = mc.Conf.Password
 	}
-	if mc.Conf.Tls.CaCert != "" && mc.Conf.Tls.ClientCert != "" && mc.Conf.Tls.ClientCertKey != "" {
+	if mc.Conf.Tls != nil && mc.Conf.Tls.CaCert != "" && mc.Conf.Tls.ClientCert != "" && mc.Conf.Tls.ClientCertKey != "" {
 		certPool := x509.NewCertPool()
 		CAFile, CAErr := os.ReadFile(mc.Conf.Tls.CaCert)
 		if CAErr != nil {
