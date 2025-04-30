@@ -23,7 +23,7 @@ type Config struct {
 	// 1-postgres 2-oracle 3-sqlite 4-mysql 5-mssql
 	Type int32 `json:"type"`
 	// TLS加密配置（生产环境建议启用），如果不为null则启用tls加密
-	Tls TLS `json:"tls" bson:"tls" yaml:"tls" mapstructure:"tls"`
+	Tls *TLS `json:"tls" bson:"tls" yaml:"tls" mapstructure:"tls"`
 
 	Address  string `json:"address" yaml:"address" mapstructure:"address"`
 	Database string `json:"database" yaml:"database" mapstructure:"database"`
