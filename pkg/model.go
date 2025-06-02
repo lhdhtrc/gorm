@@ -59,19 +59,10 @@ type Table struct {
 }
 
 type TableUUID struct {
-	ID        UUID           `json:"id" gorm:"type:binary(16);primaryKey;"`
+	ID        uuid.UUID      `json:"id" gorm:"type:binary(16);primaryKey;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-}
-
-func (s *TableUUID) BeforeCreate(_ *gorm.DB) error {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
-	s.ID = UUID(id)
-	return nil
 }
 
 type PostgresTableUUID struct {
