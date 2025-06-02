@@ -57,17 +57,15 @@ type Table struct {
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
-// default:uuid_v7();
 type TableUUID struct {
-	ID        UUID           `json:"id" gorm:"type:binary(16);primaryKey;"`
+	ID        UUID           `json:"id" gorm:"type:binary(16);primaryKey;default:uuid_v7();"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
-// default:uuid_generate_v7();
 type PostgresTableUUID struct {
-	ID        UUID           `json:"id" gorm:"type:uuid;primaryKey;"`
+	ID        UUID           `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v7();"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
