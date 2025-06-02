@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type UUID [16]byte
+type UUID uuid.UUID
 
 func (u *UUID) GormDataType() string {
 	return "binary(16)"
