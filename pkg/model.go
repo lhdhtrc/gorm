@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
@@ -58,15 +57,17 @@ type Table struct {
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
+// default:uuid_v7();
 type TableUUID struct {
-	ID        uuid.UUID      `json:"id" gorm:"type:binary(16);primaryKey;default:uuid_v7();"`
+	ID        UUID           `json:"id" gorm:"type:binary(16);primaryKey;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
+// default:uuid_generate_v7();
 type PostgresTableUUID struct {
-	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:uuid_generate_v7();"`
+	ID        UUID           `json:"id" gorm:"type:uuid;primaryKey;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
