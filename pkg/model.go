@@ -59,7 +59,7 @@ type Table struct {
 }
 
 type TableUUID struct {
-	ID        uuid.UUID      `json:"id" gorm:"type:binary(16);primaryKey;"`
+	ID        uuid.UUID      `json:"id" gorm:"type:binary(16);primaryKey;default:uuid_v7();"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
