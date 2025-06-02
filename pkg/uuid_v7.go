@@ -36,7 +36,7 @@ func (u *UUID) Scan(value any) error {
 func (u UUID) Value() (bytes driver.Value, err error) {
 	id := uuid.UUID(u)
 	if id != uuid.Nil {
-		return id.MarshalBinary(), nil
+		return id.MarshalBinary()
 	}
 	return nil, nil
 }
