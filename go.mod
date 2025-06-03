@@ -5,8 +5,8 @@ go 1.23.1
 require (
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.4
-	google.golang.org/grpc v1.72.1
+	github.com/jackc/pgx/v5 v5.7.5
+	google.golang.org/grpc v1.72.2
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
