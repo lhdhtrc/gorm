@@ -48,3 +48,9 @@ func (u UUID) String() string {
 	}
 	return ""
 }
+
+func UUIDToBin(s string) []byte {
+	id, _ := uuid.Parse(s)
+	bin, _ := id.MarshalBinary()
+	return bin
+}
