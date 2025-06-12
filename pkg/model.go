@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
@@ -59,27 +58,13 @@ type Table struct {
 }
 
 type TableUUID struct {
-	ID        UUID           `json:"id" gorm:"type:binary(16);primaryKey;"`
+	ID        BinUUID        `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
-	uid := uuid.Must(uuid.NewV7())
-	t.ID = UUID(uid)
-	return nil
-}
-
-type PostgresTableUUID struct {
-	ID        UUID           `json:"id" gorm:"type:uuid;primaryKey;"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-}
-
-func (t *PostgresTableUUID) BeforeCreate(_ *gorm.DB) error {
-	id := uuid.Must(uuid.NewV7())
-	t.ID = UUID(id)
+	t.ID = NewBinUUIDv7()
 	return nil
 }
