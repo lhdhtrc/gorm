@@ -3,7 +3,7 @@ package gorm
 import (
 	"bytes"
 	"database/sql/driver"
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -15,16 +15,6 @@ type BinUUID uuid.UUID
 // NewBinUUIDv7 generates a uuid version 7, panics on generation failure.
 func NewBinUUIDv7() BinUUID {
 	return BinUUID(uuid.Must(uuid.NewRandom()))
-}
-
-// NewNilBinUUID generates a nil uuid.
-func NewNilBinUUID() BinUUID {
-	return BinUUID(uuid.Nil)
-}
-
-// BinUUIDFromString returns the BinUUID representation of the specified uuidStr.
-func BinUUIDFromString(uuidStr string) BinUUID {
-	return BinUUID(uuid.MustParse(uuidStr))
 }
 
 // GormDataType gorm common data type.
@@ -50,21 +40,36 @@ func (BinUUID) GormDBDataType(db *gorm.DB, field *schema.Field) string {
 
 // Scan is the scanner function for this datatype.
 func (u *BinUUID) Scan(value interface{}) error {
-	valueBytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("unable to convert value to bytes")
+	if value == nil {
+		return nil
 	}
-	valueUUID, err := uuid.FromBytes(valueBytes)
-	if err != nil {
-		return err
+
+	switch v := value.(type) {
+	case []byte:
+		id, err := uuid.FromBytes(v)
+		if err != nil {
+			return fmt.Errorf("invalid UUID bytes: %w", err)
+		}
+		*u = BinUUID(id)
+	case string:
+		id, err := uuid.Parse(v)
+		if err != nil {
+			return fmt.Errorf("invalid UUID string: %w", err)
+		}
+		*u = BinUUID(id)
+	default:
+		return fmt.Errorf("unsupported UUID format: %T", value)
 	}
-	*u = BinUUID(valueUUID)
 	return nil
 }
 
 // Value is the valuer function for this datatype.
 func (u BinUUID) Value() (driver.Value, error) {
-	return uuid.UUID(u).MarshalBinary()
+	id := uuid.UUID(u)
+	if id != uuid.Nil {
+		return id.MarshalBinary()
+	}
+	return nil, nil
 }
 
 // Bytes returns the string form of the UUID.
@@ -78,7 +83,11 @@ func (u BinUUID) Bytes() []byte {
 
 // String returns the string form of the UUID.
 func (u BinUUID) String() string {
-	return uuid.UUID(u).String()
+	id := uuid.UUID(u)
+	if id != uuid.Nil {
+		return id.String()
+	}
+	return ""
 }
 
 // Equals returns true if bytes form of BinUUID matches other, false otherwise.
