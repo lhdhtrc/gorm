@@ -51,7 +51,7 @@ type Config struct {
 }
 
 type Table struct {
-	ID        uint           `json:"id" gorm:"primarykey"`
+	ID        uint64         `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
