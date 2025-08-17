@@ -30,6 +30,9 @@ type Config struct {
 	Username string `json:"username" yaml:"username" mapstructure:"username"`
 	Password string `json:"password" bson:"password" yaml:"password" mapstructure:"password"`
 
+	// 表名前缀
+	TablePrefix string `json:"table_prefix" bson:"table_prefix" yaml:"table_prefix" mapstructure:"table_prefix"`
+
 	// 最大打开连接数（建议：根据负载设置，默认100），0表示无限制（不推荐生产环境使用）
 	MaxOpenConnects int `json:"max_open_connects" bson:"max_open_connects" yaml:"max_open_connects" mapstructure:"max_open_connects"`
 	// 最大空闲连接数（建议：保持适当空闲连接减少握手开销），0表示无限制（需配合max_open_connects使用）
@@ -37,6 +40,10 @@ type Config struct {
 	// 连接最大生命周期（单位：秒，建议：300-600秒），超时后连接会被强制回收重建
 	ConnMaxLifeTime int `json:"conn_max_life_time" bson:"conn_max_life_time" yaml:"conn_max_life_time" mapstructure:"conn_max_life_time"`
 
+	// 是否为单数表名
+	SingularTable bool `json:"singular_table" bson:"singular_table" yaml:"singular_table" mapstructure:"singular_table"`
+	// 是否禁用物理外键
+	DisableForeignKeyConstraintWhenMigrating bool `json:"disable_foreign_key_constraint_when_migrating" bson:"disable_foreign_key_constraint_when_migrating" yaml:"disable_foreign_key_constraint_when_migrating" mapstructure:"disable_foreign_key_constraint_when_migrating"`
 	// 是否跳过默认事务（特殊场景使用，如批量导入）
 	SkipDefaultTransaction bool `json:"skip_default_transaction" bson:"skip_default_transaction" yaml:"skip_default_transaction" mapstructure:"skip_default_transaction"`
 	// 是否启用预处理语句（安全建议：始终开启防止SQL注入）

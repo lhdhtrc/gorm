@@ -11,6 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"os"
 	"strings"
 	"time"
@@ -80,6 +81,13 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: strings.Join(dsn, " "),
 	}), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   mc.Conf.TablePrefix,
+			SingularTable: mc.Conf.SingularTable,
+		},
+
+		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
+
 		SkipDefaultTransaction: mc.Conf.SkipDefaultTransaction,
 		PrepareStmt:            mc.Conf.PrepareStmt,
 		Logger:                 _default,

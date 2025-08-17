@@ -8,6 +8,7 @@ import (
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 	"os"
 	"time"
 )
@@ -72,6 +73,13 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		}, mc.Conf.loggerHandle)
 	}
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   mc.Conf.TablePrefix,
+			SingularTable: mc.Conf.SingularTable,
+		},
+
+		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
+
 		SkipDefaultTransaction: mc.Conf.SkipDefaultTransaction,
 		PrepareStmt:            mc.Conf.PrepareStmt,
 		Logger:                 _default,
