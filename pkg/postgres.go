@@ -29,7 +29,7 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	addr := strings.Split(mc.Conf.Address, ":")
 
 	var dsn []string
-	dsn = append(dsn, fmt.Sprintf("host=%s port=%v dbname=%s TimeZone=Asia/Shanghai", addr[0], addr[1], mc.Conf.Database))
+	dsn = append(dsn, fmt.Sprintf("host=%s port=%v dbname=%s TimeZone=UTC", addr[0], addr[1], mc.Conf.Database))
 	if mc.Conf.Username != "" && mc.Conf.Password != "" {
 		dsn = append(dsn, fmt.Sprintf("user=%s password=%s", mc.Conf.Username, mc.Conf.Password))
 	}
@@ -84,6 +84,9 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   mc.Conf.TablePrefix,
 			SingularTable: mc.Conf.SingularTable,
+		},
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
 		},
 
 		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
