@@ -26,7 +26,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		Net:       "tcp",
 		Addr:      mc.Conf.Address,
 		DBName:    mc.Conf.Database,
-		Loc:       time.Local,
+		Loc:       time.UTC,
 		ParseTime: true,
 	}
 
@@ -76,6 +76,9 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   mc.Conf.TablePrefix,
 			SingularTable: mc.Conf.SingularTable,
+		},
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
 		},
 
 		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
