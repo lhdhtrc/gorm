@@ -14,7 +14,7 @@ type BinUUID uuid.UUID
 
 // NewBinUUIDv7 generates a uuid version 7, panics on generation failure.
 func NewBinUUIDv7() BinUUID {
-	return BinUUID(uuid.Must(uuid.NewRandom()))
+	return BinUUID(uuid.Must(uuid.NewV7()))
 }
 
 func ParseUUID(s string) BinUUID {

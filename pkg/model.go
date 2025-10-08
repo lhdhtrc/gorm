@@ -79,6 +79,11 @@ type TableUUID struct {
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
+func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
+	t.ID = NewBinUUIDv7()
+	return nil
+}
+
 type TableUUIDUnique struct {
 	ID        BinUUID               `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
@@ -86,7 +91,7 @@ type TableUUIDUnique struct {
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"uniqueIndex:idx_unique"`
 }
 
-func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
+func (t *TableUUIDUnique) BeforeCreate(_ *gorm.DB) error {
 	t.ID = NewBinUUIDv7()
 	return nil
 }
