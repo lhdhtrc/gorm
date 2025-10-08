@@ -22,7 +22,7 @@ func ParseUUID(s string) BinUUID {
 }
 
 func ParseUUIDPtr(s string) *BinUUID {
-	u := BinUUID(uuid.MustParse(s))
+	u := ParseUUID(s)
 	return &u
 }
 
