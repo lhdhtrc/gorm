@@ -17,6 +17,15 @@ func NewBinUUIDv7() BinUUID {
 	return BinUUID(uuid.Must(uuid.NewRandom()))
 }
 
+func ParseUUID(s string) BinUUID {
+	return BinUUID(uuid.MustParse(s))
+}
+
+func ParseUUIDPtr(s string) *BinUUID {
+	u := BinUUID(uuid.MustParse(s))
+	return &u
+}
+
 // GormDataType gorm common data type.
 func (BinUUID) GormDataType() string {
 	return "BINARY(16)"
