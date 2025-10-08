@@ -10,6 +10,7 @@ require (
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
+	gorm.io/plugin/soft_delete v1.2.1
 )
 
 require (
@@ -23,5 +24,4 @@ require (
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
-	gorm.io/plugin/soft_delete v1.2.1 // indirect
 )
