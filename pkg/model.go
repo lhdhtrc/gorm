@@ -62,21 +62,21 @@ type Table struct {
 	ID        uint64                `json:"id" gorm:"primarykey"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
 }
 
 type TableUnique struct {
 	ID        uint64                `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"uniqueIndex:idx_unique"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
 }
 
 type TableUUID struct {
 	ID        BinUUID               `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"index"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
 }
 
 func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
@@ -88,7 +88,7 @@ type TableUUIDUnique struct {
 	ID        BinUUID               `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"uniqueIndex:idx_unique"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
 }
 
 func (t *TableUUIDUnique) BeforeCreate(_ *gorm.DB) error {
