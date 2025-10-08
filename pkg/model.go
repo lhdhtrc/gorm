@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"gorm.io/gorm"
+	"gorm.io/plugin/soft_delete"
 	"time"
 )
 
@@ -58,17 +59,31 @@ type Config struct {
 }
 
 type Table struct {
-	ID        uint64         `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	ID        uint                  `json:"id" gorm:"primarykey"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"index"`
+}
+
+type TableUnique struct {
+	ID        uint                  `json:"id" gorm:"primaryKey;"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"uniqueIndex:idx_unique"`
 }
 
 type TableUUID struct {
-	ID        BinUUID        `json:"id" gorm:"primaryKey;"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	ID        BinUUID               `json:"id" gorm:"primaryKey;"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"index"`
+}
+
+type TableUUIDUnique struct {
+	ID        BinUUID               `json:"id" gorm:"primaryKey;"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
+	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"uniqueIndex:idx_unique"`
 }
 
 func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
