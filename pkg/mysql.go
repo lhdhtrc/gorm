@@ -13,9 +13,7 @@ import (
 	"time"
 )
 
-type MysqlConf struct {
-	Conf *Config
-}
+type MysqlConf Config
 
 type MysqlDB struct {
 	DB *gorm.DB
@@ -24,25 +22,25 @@ type MysqlDB struct {
 func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	clientOptions := mysql.Config{
 		Net:       "tcp",
-		Addr:      mc.Conf.Address,
-		DBName:    mc.Conf.Database,
+		Addr:      mc.Address,
+		DBName:    mc.Database,
 		Loc:       time.UTC,
 		ParseTime: true,
 	}
 
-	if mc.Conf.Username != "" && mc.Conf.Password != "" {
-		clientOptions.User = mc.Conf.Username
-		clientOptions.Passwd = mc.Conf.Password
+	if mc.Username != "" && mc.Password != "" {
+		clientOptions.User = mc.Username
+		clientOptions.Passwd = mc.Password
 	}
-	if mc.Conf.Tls != nil && mc.Conf.Tls.CaCert != "" && mc.Conf.Tls.ClientCert != "" && mc.Conf.Tls.ClientCertKey != "" {
+	if mc.Tls != nil && mc.Tls.CaCert != "" && mc.Tls.ClientCert != "" && mc.Tls.ClientCertKey != "" {
 		certPool := x509.NewCertPool()
-		CAFile, CAErr := os.ReadFile(mc.Conf.Tls.CaCert)
+		CAFile, CAErr := os.ReadFile(mc.Tls.CaCert)
 		if CAErr != nil {
 			return nil, CAErr
 		}
 		certPool.AppendCertsFromPEM(CAFile)
 
-		clientCert, clientCertErr := tls.LoadX509KeyPair(mc.Conf.Tls.ClientCert, mc.Conf.Tls.ClientCertKey)
+		clientCert, clientCertErr := tls.LoadX509KeyPair(mc.Tls.ClientCert, mc.Tls.ClientCertKey)
 		if clientCertErr != nil {
 			return nil, clientCertErr
 		}
@@ -60,38 +58,38 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 
 	var _default loger.Interface
-	if mc.Conf.Logger {
+	if mc.Logger {
 		_default = internal.New(internal.Config{
 			Config: loger.Config{
 				SlowThreshold: 200 * time.Millisecond,
 				LogLevel:      loger.Info,
 				Colorful:      true,
 			},
-			Console:      mc.Conf.loggerConsole,
-			Database:     mc.Conf.Database,
-			DatabaseType: mc.Conf.Type,
-		}, mc.Conf.loggerHandle)
+			Console:      mc.loggerConsole,
+			Database:     mc.Database,
+			DatabaseType: mc.Type,
+		}, mc.loggerHandle)
 	}
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   mc.Conf.TablePrefix,
-			SingularTable: mc.Conf.SingularTable,
+			TablePrefix:   mc.TablePrefix,
+			SingularTable: mc.SingularTable,
 		},
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 
-		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
+		DisableForeignKeyConstraintWhenMigrating: mc.DisableForeignKeyConstraintWhenMigrating,
 
-		SkipDefaultTransaction: mc.Conf.SkipDefaultTransaction,
-		PrepareStmt:            mc.Conf.PrepareStmt,
+		SkipDefaultTransaction: mc.SkipDefaultTransaction,
+		PrepareStmt:            mc.PrepareStmt,
 		Logger:                 _default,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if len(tables) != 0 && mc.Conf.autoMigrate {
+	if len(tables) != 0 && mc.autoMigrate {
 		// 初始化表结构
 		if err = db.AutoMigrate(tables...); err != nil {
 			return nil, err
@@ -102,9 +100,9 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	if _de != nil {
 		return nil, _de
 	}
-	d.SetMaxOpenConns(mc.Conf.MaxOpenConnects)
-	d.SetMaxIdleConns(mc.Conf.MaxIdleConnects)
-	d.SetConnMaxLifetime(time.Minute * time.Duration(mc.Conf.ConnMaxLifeTime))
+	d.SetMaxOpenConns(mc.MaxOpenConnects)
+	d.SetMaxIdleConns(mc.MaxIdleConnects)
+	d.SetConnMaxLifetime(time.Minute * time.Duration(mc.ConnMaxLifeTime))
 
 	return &MysqlDB{DB: db}, nil
 }

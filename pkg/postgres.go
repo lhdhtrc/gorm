@@ -17,32 +17,30 @@ import (
 	"time"
 )
 
-type PostgresConf struct {
-	Conf *Config
-}
+type PostgresConf Config
 
 type PostgresDB struct {
 	DB *gorm.DB
 }
 
 func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
-	addr := strings.Split(mc.Conf.Address, ":")
+	addr := strings.Split(mc.Address, ":")
 
 	var dsn []string
-	dsn = append(dsn, fmt.Sprintf("host=%s port=%v dbname=%s TimeZone=UTC", addr[0], addr[1], mc.Conf.Database))
-	if mc.Conf.Username != "" && mc.Conf.Password != "" {
-		dsn = append(dsn, fmt.Sprintf("user=%s password=%s", mc.Conf.Username, mc.Conf.Password))
+	dsn = append(dsn, fmt.Sprintf("host=%s port=%v dbname=%s TimeZone=UTC", addr[0], addr[1], mc.Database))
+	if mc.Username != "" && mc.Password != "" {
+		dsn = append(dsn, fmt.Sprintf("user=%s password=%s", mc.Username, mc.Password))
 	}
-	if mc.Conf.Tls != nil && mc.Conf.Tls.CaCert != "" && mc.Conf.Tls.ClientCert != "" && mc.Conf.Tls.ClientCertKey != "" {
+	if mc.Tls != nil && mc.Tls.CaCert != "" && mc.Tls.ClientCert != "" && mc.Tls.ClientCertKey != "" {
 		dsn = append(dsn, "sslmode=require")
 		certPool := x509.NewCertPool()
-		CAFile, CAErr := os.ReadFile(mc.Conf.Tls.CaCert)
+		CAFile, CAErr := os.ReadFile(mc.Tls.CaCert)
 		if CAErr != nil {
 			return nil, CAErr
 		}
 		certPool.AppendCertsFromPEM(CAFile)
 
-		clientCert, clientCertErr := tls.LoadX509KeyPair(mc.Conf.Tls.ClientCert, mc.Conf.Tls.ClientCertKey)
+		clientCert, clientCertErr := tls.LoadX509KeyPair(mc.Tls.ClientCert, mc.Tls.ClientCertKey)
 		if clientCertErr != nil {
 			return nil, clientCertErr
 		}
@@ -66,40 +64,40 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	}
 
 	var _default loger.Interface
-	if mc.Conf.Logger {
+	if mc.Logger {
 		_default = internal.New(internal.Config{
 			Config: loger.Config{
 				SlowThreshold: 200 * time.Millisecond,
 				LogLevel:      loger.Info,
 				Colorful:      true,
 			},
-			Console:      mc.Conf.loggerConsole,
-			Database:     mc.Conf.Database,
-			DatabaseType: mc.Conf.Type,
-		}, mc.Conf.loggerHandle)
+			Console:      mc.loggerConsole,
+			Database:     mc.Database,
+			DatabaseType: mc.Type,
+		}, mc.loggerHandle)
 	}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: strings.Join(dsn, " "),
 	}), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   mc.Conf.TablePrefix,
-			SingularTable: mc.Conf.SingularTable,
+			TablePrefix:   mc.TablePrefix,
+			SingularTable: mc.SingularTable,
 		},
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 
-		DisableForeignKeyConstraintWhenMigrating: mc.Conf.DisableForeignKeyConstraintWhenMigrating,
+		DisableForeignKeyConstraintWhenMigrating: mc.DisableForeignKeyConstraintWhenMigrating,
 
-		SkipDefaultTransaction: mc.Conf.SkipDefaultTransaction,
-		PrepareStmt:            mc.Conf.PrepareStmt,
+		SkipDefaultTransaction: mc.SkipDefaultTransaction,
+		PrepareStmt:            mc.PrepareStmt,
 		Logger:                 _default,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if len(tables) != 0 && mc.Conf.autoMigrate {
+	if len(tables) != 0 && mc.autoMigrate {
 		// 初始化表结构
 		if err = db.AutoMigrate(tables...); err != nil {
 			return nil, err
@@ -110,9 +108,9 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	if _de != nil {
 		return nil, _de
 	}
-	d.SetMaxOpenConns(mc.Conf.MaxOpenConnects)
-	d.SetMaxIdleConns(mc.Conf.MaxIdleConnects)
-	d.SetConnMaxLifetime(time.Minute * time.Duration(mc.Conf.ConnMaxLifeTime))
+	d.SetMaxOpenConns(mc.MaxOpenConnects)
+	d.SetMaxIdleConns(mc.MaxIdleConnects)
+	d.SetConnMaxLifetime(time.Minute * time.Duration(mc.ConnMaxLifeTime))
 
 	return &PostgresDB{DB: db}, nil
 }
