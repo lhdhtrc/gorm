@@ -17,7 +17,9 @@ import (
 	"time"
 )
 
-type PostgresConf Config
+type PostgresConf struct {
+	Config
+}
 
 type PostgresDB struct {
 	DB *gorm.DB

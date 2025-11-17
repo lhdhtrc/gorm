@@ -13,7 +13,9 @@ import (
 	"time"
 )
 
-type MysqlConf Config
+type MysqlConf struct {
+	Config
+}
 
 type MysqlDB struct {
 	DB *gorm.DB
