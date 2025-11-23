@@ -73,7 +73,7 @@ type TableUnique struct {
 }
 
 type TableUUID struct {
-	ID        UUID                  `json:"id" gorm:"primaryKey;"`
+	ID        string                `json:"id" gorm:"type:uuid;primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
@@ -85,7 +85,7 @@ func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
 }
 
 type TableUUIDUnique struct {
-	ID        UUID                  `json:"id" gorm:"primaryKey;"`
+	ID        string                `json:"id" gorm:"type:uuid;primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
