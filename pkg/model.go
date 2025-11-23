@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/plugin/soft_delete"
 	"time"
@@ -74,7 +73,7 @@ type TableUnique struct {
 }
 
 type TableUUID struct {
-	ID        datatypes.UUID        `json:"id" gorm:"primaryKey;"`
+	ID        UUID                  `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
@@ -86,7 +85,7 @@ func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
 }
 
 type TableUUIDUnique struct {
-	ID        datatypes.UUID        `json:"id" gorm:"primaryKey;"`
+	ID        UUID                  `json:"id" gorm:"primaryKey;"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
