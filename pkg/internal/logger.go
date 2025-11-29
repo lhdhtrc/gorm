@@ -164,8 +164,8 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		if gd := md.Get("trace-id"); len(gd) != 0 {
 			logMap["trace_id"] = gd[0]
 		}
-		if gd := md.Get("account-id"); len(gd) != 0 {
-			logMap["account_id"] = gd[0]
+		if gd := md.Get("user-id"); len(gd) != 0 {
+			logMap["user_id"] = gd[0]
 		}
 		if gd := md.Get("app-id"); len(gd) != 0 {
 			logMap["invoke_app_id"] = gd[0]
