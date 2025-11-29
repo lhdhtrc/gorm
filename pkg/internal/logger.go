@@ -14,6 +14,10 @@ import (
 
 const (
 	ResultSuccess = "success"
+
+	TraceId = "ff-trace-id"
+	UserId  = "ff-user-id"
+	AppId   = "ff-app-id"
 )
 
 // Config 包含日志记录器的配置参数
@@ -161,13 +165,13 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 			"Type":      l.databaseType,
 		}
 		md, _ := metadata.FromIncomingContext(ctx)
-		if gd := md.Get("trace-id"); len(gd) != 0 {
+		if gd := md.Get(TraceId); len(gd) != 0 {
 			logMap["trace_id"] = gd[0]
 		}
-		if gd := md.Get("user-id"); len(gd) != 0 {
+		if gd := md.Get(UserId); len(gd) != 0 {
 			logMap["user_id"] = gd[0]
 		}
-		if gd := md.Get("app-id"); len(gd) != 0 {
+		if gd := md.Get(AppId); len(gd) != 0 {
 			logMap["invoke_app_id"] = gd[0]
 		}
 		if b, err := json.Marshal(logMap); err == nil {
