@@ -15,9 +15,9 @@ import (
 const (
 	ResultSuccess = "success"
 
-	TraceId = "ff-trace-id"
-	UserId  = "ff-user-id"
-	AppId   = "ff-app-id"
+	TraceId = "trace-id"
+	UserId  = "user-id"
+	AppId   = "app-id"
 )
 
 // Config 包含日志记录器的配置参数
