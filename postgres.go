@@ -77,7 +77,7 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	sqlDB := stdlib.OpenDB(*connConfig)
 
 	// log 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
-	log := NewGormLogger(&mc.Conf)
+	log := NewLogger(&mc.Conf)
 
 	// 打开 gorm DB，并配置命名策略、NowFunc、事务与 logger 等选项。
 	db, err := gorm.Open(postgres.New(postgres.Config{

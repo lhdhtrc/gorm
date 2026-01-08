@@ -61,7 +61,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 
 	// gormLogger 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
-	log := NewGormLogger(&mc.Conf)
+	log := NewLogger(&mc.Conf)
 
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		// NamingStrategy 控制表名前缀与单复数规则。
