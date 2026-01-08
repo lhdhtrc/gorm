@@ -15,7 +15,7 @@ import (
 )
 
 type PostgresConf struct {
-	Config
+	Conf
 }
 
 type PostgresDB struct {
@@ -48,7 +48,7 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	}
 
 	// tlsConfig 为构造好的 TLS 配置；tlsEnabled 表示是否启用；err 为构造过程的错误。
-	tlsConfig, tlsEnabled, err := newClientTLSConfig(mc.Tls)
+	tlsConfig, tlsEnabled, err := NewTLSConfig(mc.Tls)
 	// 构造 TLS 配置失败直接返回错误。
 	if err != nil {
 		return nil, err
@@ -76,25 +76,31 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	// 使用 pgx stdlib 将 ConnConfig 转成 *sql.DB，交给 gorm driver 复用连接池。
 	sqlDB := stdlib.OpenDB(*connConfig)
 
-	// gormLogger 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
-	gormLogger := newGormLogger(&mc.Config)
+	// log 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
+	log := NewGormLogger(&mc.Conf)
 
 	// 打开 gorm DB，并配置命名策略、NowFunc、事务与 logger 等选项。
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		// Conn 复用上面创建的 *sql.DB。
 		Conn: sqlDB,
 	}), &gorm.Config{
+		// NamingStrategy 控制表名前缀与单复数规则。
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   mc.TablePrefix,
 			SingularTable: mc.SingularTable,
 		},
+		// NowFunc 统一生成 UTC 时间。
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
+		// DisableForeignKeyConstraintWhenMigrating 控制迁移时是否创建外键。
 		DisableForeignKeyConstraintWhenMigrating: mc.DisableForeignKeyConstraintWhenMigrating,
-		SkipDefaultTransaction:                   mc.SkipDefaultTransaction,
-		PrepareStmt:                              mc.PrepareStmt,
-		Logger:                                   gormLogger,
+		// SkipDefaultTransaction 控制 gorm 默认事务行为。
+		SkipDefaultTransaction: mc.SkipDefaultTransaction,
+		// PrepareStmt 控制是否启用预处理语句。
+		PrepareStmt: mc.PrepareStmt,
+		// Logger 为 gorm 的日志实现。
+		Logger: log,
 	})
 	// 打开失败时关闭 sqlDB，避免连接泄漏。
 	if err != nil {

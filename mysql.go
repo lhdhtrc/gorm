@@ -12,7 +12,7 @@ import (
 )
 
 type MysqlConf struct {
-	Config
+	Conf
 }
 
 type MysqlDB struct {
@@ -43,7 +43,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 
 	// tlsConfig 为构造好的 TLS 配置；tlsEnabled 表示是否启用；err 为构造过程的错误。
-	tlsConfig, tlsEnabled, err := newClientTLSConfig(mc.Tls)
+	tlsConfig, tlsEnabled, err := NewTLSConfig(mc.Tls)
 	// 构造 TLS 配置失败直接返回错误。
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 
 	// gormLogger 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
-	gormLogger := newGormLogger(&mc.Config)
+	log := NewGormLogger(&mc.Conf)
 
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		// NamingStrategy 控制表名前缀与单复数规则。
@@ -80,7 +80,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		// PrepareStmt 控制是否启用预处理语句。
 		PrepareStmt: mc.PrepareStmt,
 		// Logger 为 gorm 的日志实现。
-		Logger: gormLogger,
+		Logger: log,
 	})
 	// 打开失败直接返回错误。
 	if err != nil {
