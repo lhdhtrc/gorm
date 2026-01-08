@@ -38,7 +38,7 @@ type Config struct {
 }
 
 // New 构造一个 gorm logger，实现控制台输出与自定义回调输出。
-func New(config Config, handle func(b []byte)) loger.Interface {
+func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 	// 定义各级别日志输出模板（可选彩色）。
 	var (
 		infoStr      = "%s\n[info] "
