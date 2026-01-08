@@ -1,37 +1,7 @@
 package gormx
 
-import (
-	"time"
-
-	"gorm.io/gorm"
-	"gorm.io/plugin/soft_delete"
-)
-
-const (
-	// Postgres 表示 Postgres 数据库类型。
-	Postgres int32 = iota + 1
-	// Oracle 表示 Oracle 数据库类型。
-	Oracle
-	// Sqlite 表示 Sqlite 数据库类型。
-	Sqlite
-	// Mysql 表示 MySQL 数据库类型。
-	Mysql
-	// Mssql 表示 Microsoft SQL Server 数据库类型。
-	Mssql
-)
-
-// TLS 描述数据库连接的 TLS（双向）证书配置。
-type TLS struct {
-	// CaCert 为 CA 证书文件路径。
-	CaCert string `json:"ca_cert"`
-	// ClientCert 为客户端证书文件路径。
-	ClientCert string `json:"client_cert"`
-	// ClientCertKey 为客户端证书私钥文件路径。
-	ClientCertKey string `json:"client_cert_key"`
-}
-
-// Config 为 gorm 初始化所需的配置项集合。
-type Config struct {
+// Conf 为 gorm 初始化所需的配置项集合。
+type Conf struct {
 	// 1-postgres 2-oracle 3-sqlite 4-mysql 5-mssql
 	// Type 表示数据库类型枚举。
 	Type int32 `json:"type"`
@@ -87,46 +57,17 @@ type Config struct {
 	loggerConsole bool
 }
 
-// Table 为常用的 uint64 主键基类（带软删除）。
-type Table struct {
-	ID        uint64                `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
+// WithLoggerConsole 设置是否将 SQL 日志输出到控制台。
+func (c *Conf) WithLoggerConsole(state bool) {
+	c.loggerConsole = state
 }
 
-// TableUnique 为带 uniqueIndex 的基类（以 DeletedAt 实现“软删除下的唯一性”）。
-type TableUnique struct {
-	ID        uint64                `json:"id" gorm:"primaryKey;"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
+// WithLoggerHandle 设置日志回调，用于将 SQL 日志写入你的日志系统。
+func (c *Conf) WithLoggerHandle(handle func(b []byte)) {
+	c.loggerHandle = handle
 }
 
-// TableUUID 为 string 主键基类（使用 UUIDv7）。
-type TableUUID struct {
-	ID        string                `json:"id" gorm:"type:uuid;primaryKey;"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
-}
-
-// BeforeCreate 在插入前生成 UUIDv7 作为主键。
-func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
-	t.ID = NewUUIDv7()
-	return nil
-}
-
-// TableUUIDUnique 为带 uniqueIndex 的 UUID 主键基类。
-type TableUUIDUnique struct {
-	ID        string                `json:"id" gorm:"type:uuid;primaryKey;"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
-}
-
-// BeforeCreate 在插入前生成 UUIDv7 作为主键。
-func (t *TableUUIDUnique) BeforeCreate(_ *gorm.DB) error {
-	t.ID = NewUUIDv7()
-	return nil
+// WithAutoMigrate 设置是否在初始化连接后自动迁移表结构。
+func (c *Conf) WithAutoMigrate(state bool) {
+	c.autoMigrate = state
 }
