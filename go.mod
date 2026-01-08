@@ -1,4 +1,4 @@
-module github.com/lhdhtrc/gorm
+module github.com/fireflycore/gormx
 
 go 1.25.1
 

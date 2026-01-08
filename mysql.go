@@ -1,16 +1,20 @@
-package gorm
+package gormx
 
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
+	"os"
+	"strconv"
+	"sync/atomic"
+	"time"
+
+	"github.com/fireflycore/gormx/internal"
 	"github.com/go-sql-driver/mysql"
-	"github.com/lhdhtrc/gorm/pkg/internal"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	loger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-	"os"
-	"time"
 )
 
 type MysqlConf struct {
@@ -20,6 +24,8 @@ type MysqlConf struct {
 type MysqlDB struct {
 	DB *gorm.DB
 }
+
+var mysqlTLSConfigSeq uint64
 
 func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	clientOptions := mysql.Config{
@@ -34,17 +40,20 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		clientOptions.User = mc.Username
 		clientOptions.Passwd = mc.Password
 	}
+
 	if mc.Tls != nil && mc.Tls.CaCert != "" && mc.Tls.ClientCert != "" && mc.Tls.ClientCertKey != "" {
 		certPool := x509.NewCertPool()
-		CAFile, CAErr := os.ReadFile(mc.Tls.CaCert)
-		if CAErr != nil {
-			return nil, CAErr
+		caFile, err := os.ReadFile(mc.Tls.CaCert)
+		if err != nil {
+			return nil, err
 		}
-		certPool.AppendCertsFromPEM(CAFile)
+		if ok := certPool.AppendCertsFromPEM(caFile); !ok {
+			return nil, errors.New("failed to append ca cert")
+		}
 
-		clientCert, clientCertErr := tls.LoadX509KeyPair(mc.Tls.ClientCert, mc.Tls.ClientCertKey)
-		if clientCertErr != nil {
-			return nil, clientCertErr
+		clientCert, err := tls.LoadX509KeyPair(mc.Tls.ClientCert, mc.Tls.ClientCertKey)
+		if err != nil {
+			return nil, err
 		}
 
 		tlsConfig := tls.Config{
@@ -52,16 +61,16 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 			RootCAs:      certPool,
 		}
 
-		if err := mysql.RegisterTLSConfig("custom", &tlsConfig); err != nil {
+		tlsConfigName := "gormx_" + strconv.FormatUint(atomic.AddUint64(&mysqlTLSConfigSeq, 1), 10)
+		if err := mysql.RegisterTLSConfig(tlsConfigName, &tlsConfig); err != nil {
 			return nil, err
 		}
-
-		clientOptions.TLSConfig = "custom"
+		clientOptions.TLSConfig = tlsConfigName
 	}
 
-	var _default loger.Interface
+	gormLogger := loger.Discard
 	if mc.Logger {
-		_default = internal.New(internal.Config{
+		gormLogger = internal.New(internal.Config{
 			Config: loger.Config{
 				SlowThreshold: 200 * time.Millisecond,
 				LogLevel:      loger.Info,
@@ -72,6 +81,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 			DatabaseType: mc.Type,
 		}, mc.loggerHandle)
 	}
+
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   mc.TablePrefix,
@@ -80,31 +90,33 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
-
 		DisableForeignKeyConstraintWhenMigrating: mc.DisableForeignKeyConstraintWhenMigrating,
-
-		SkipDefaultTransaction: mc.SkipDefaultTransaction,
-		PrepareStmt:            mc.PrepareStmt,
-		Logger:                 _default,
+		SkipDefaultTransaction:                   mc.SkipDefaultTransaction,
+		PrepareStmt:                              mc.PrepareStmt,
+		Logger:                                   gormLogger,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if len(tables) != 0 && mc.autoMigrate {
-		// 初始化表结构
 		if err = db.AutoMigrate(tables...); err != nil {
 			return nil, err
 		}
 	}
 
-	d, _de := db.DB()
-	if _de != nil {
-		return nil, _de
+	d, err := db.DB()
+	if err != nil {
+		return nil, err
 	}
+
 	d.SetMaxOpenConns(mc.MaxOpenConnects)
 	d.SetMaxIdleConns(mc.MaxIdleConnects)
-	d.SetConnMaxLifetime(time.Minute * time.Duration(mc.ConnMaxLifeTime))
+	if mc.ConnMaxLifeTime > 0 {
+		d.SetConnMaxLifetime(time.Second * time.Duration(mc.ConnMaxLifeTime))
+	} else {
+		d.SetConnMaxLifetime(0)
+	}
 
 	return &MysqlDB{DB: db}, nil
 }

@@ -1,4 +1,4 @@
-package gorm
+package gormx
 
 func (config *Config) WithLoggerConsole(state bool) {
 	config.loggerConsole = state

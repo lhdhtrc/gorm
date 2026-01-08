@@ -1,9 +1,10 @@
-package gorm
+package gormx
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 	"gorm.io/plugin/soft_delete"
-	"time"
 )
 
 const (

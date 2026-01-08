@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc/metadata"
 	"time"
 
+	"google.golang.org/grpc/metadata"
 	loger "gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 )
@@ -20,16 +20,17 @@ const (
 	AppId   = "app-id"
 )
 
-// Config 包含日志记录器的配置参数
 type Config struct {
 	loger.Config
 
-	Console      bool   // 控制台是否输出日志
-	Database     string // 数据库
-	DatabaseType int32  // 数据库类型
+	// 控制台是否输出日志
+	Console bool
+	// 数据库
+	Database string
+	// 数据库类型
+	DatabaseType int32
 }
 
-// New initialize CustomLogger
 func New(config Config, handle func(b []byte)) loger.Interface {
 	var (
 		infoStr      = "%s\n[info] "
@@ -74,35 +75,33 @@ type logger struct {
 	handle                              func(b []byte)
 }
 
-// LogMode log mode
 func (l *logger) LogMode(level loger.LogLevel) loger.Interface {
 	newLogger := *l
 	newLogger.LogLevel = level
 	return &newLogger
 }
 
-// Info print info
 func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
 	if l.console && l.LogLevel >= loger.Info {
-		fmt.Println(fmt.Sprintf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
+		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		fmt.Printf(l.infoStr+msg+"\n", args...)
 	}
 }
 
-// Warn print warn messages
 func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
 	if l.console && l.LogLevel >= loger.Warn {
-		fmt.Println(fmt.Sprintf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
+		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		fmt.Printf(l.warnStr+msg+"\n", args...)
 	}
 }
 
-// Error print error messages
 func (l *logger) Error(_ context.Context, msg string, data ...interface{}) {
 	if l.console && l.LogLevel >= loger.Error {
-		fmt.Println(fmt.Sprintf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...))
+		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		fmt.Printf(l.errStr+msg+"\n", args...)
 	}
 }
 
-// Trace print sql message
 func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	if l.LogLevel <= loger.Silent {
 		return
@@ -116,12 +115,12 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		file := utils.FileWithLineNum()
 		if l.console {
 			if rows == -1 {
-				fmt.Println(fmt.Sprintf(l.traceErrStr, file, err, timer, "-", sql))
+				fmt.Printf(l.traceErrStr+"\n", file, err, timer, "-", sql)
 			} else {
-				fmt.Println(fmt.Sprintf(l.traceErrStr, file, err, timer, rows, sql))
+				fmt.Printf(l.traceErrStr+"\n", file, err, timer, rows, sql)
 			}
 		}
-		l.handleLog(ctx, 4, file, sql, err.Error(), elapsed)
+		l.handleLog(ctx, loger.Error, file, sql, err.Error(), elapsed)
 
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= loger.Warn:
 		sql, rows := fc()
@@ -130,12 +129,12 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		file := utils.FileWithLineNum()
 		if l.console {
 			if rows == -1 {
-				fmt.Println(fmt.Sprintf(l.traceWarnStr, file, slowLog, timer, "-", sql))
+				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, "-", sql)
 			} else {
-				fmt.Println(fmt.Sprintf(l.traceWarnStr, file, slowLog, timer, rows, sql))
+				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, rows, sql)
 			}
 		}
-		l.handleLog(ctx, 3, file, sql, slowLog, elapsed)
+		l.handleLog(ctx, loger.Warn, file, sql, slowLog, elapsed)
 
 	case l.LogLevel == loger.Info:
 		sql, rows := fc()
@@ -143,39 +142,42 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		file := utils.FileWithLineNum()
 		if l.console {
 			if rows == -1 {
-				fmt.Println(fmt.Sprintf(l.traceStr, file, timer, "-", sql))
+				fmt.Printf(l.traceStr+"\n", file, timer, "-", sql)
 			} else {
-				fmt.Println(fmt.Sprintf(l.traceStr, file, timer, rows, sql))
+				fmt.Printf(l.traceStr+"\n", file, timer, rows, sql)
 			}
 		}
-		l.handleLog(ctx, 1, file, sql, ResultSuccess, elapsed)
+		l.handleLog(ctx, loger.Info, file, sql, ResultSuccess, elapsed)
 	}
 }
 
-// handleLog 统一处理日志记录
 func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt, result string, elapsed time.Duration) {
-	if l.handle != nil {
-		logMap := map[string]interface{}{
-			"Database":  l.database,
-			"Statement": smt,
-			"Result":    result,
-			"Duration":  elapsed.Microseconds(),
-			"Level":     level,
-			"Path":      path,
-			"Type":      l.databaseType,
-		}
-		md, _ := metadata.FromIncomingContext(ctx)
-		if gd := md.Get(TraceId); len(gd) != 0 {
-			logMap["trace_id"] = gd[0]
-		}
-		if gd := md.Get(UserId); len(gd) != 0 {
-			logMap["user_id"] = gd[0]
-		}
-		if gd := md.Get(AppId); len(gd) != 0 {
-			logMap["invoke_app_id"] = gd[0]
-		}
-		if b, err := json.Marshal(logMap); err == nil {
-			l.handle(b)
-		}
+	if l.handle == nil {
+		return
+	}
+
+	logMap := map[string]interface{}{
+		"Database":  l.database,
+		"Statement": smt,
+		"Result":    result,
+		"Duration":  elapsed.Microseconds(),
+		"Level":     level,
+		"Path":      path,
+		"Type":      l.databaseType,
+	}
+
+	md, _ := metadata.FromIncomingContext(ctx)
+	if gd := md.Get(TraceId); len(gd) != 0 {
+		logMap["trace_id"] = gd[0]
+	}
+	if gd := md.Get(UserId); len(gd) != 0 {
+		logMap["user_id"] = gd[0]
+	}
+	if gd := md.Get(AppId); len(gd) != 0 {
+		logMap["invoke_app_id"] = gd[0]
+	}
+
+	if b, err := json.Marshal(logMap); err == nil {
+		l.handle(b)
 	}
 }
