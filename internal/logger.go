@@ -13,14 +13,20 @@ import (
 )
 
 const (
+	// ResultSuccess 表示成功执行 SQL 的结果标记。
 	ResultSuccess = "success"
 
+	// TraceId 为从 metadata 读取 trace id 的 key。
 	TraceId = "trace-id"
-	UserId  = "user-id"
-	AppId   = "app-id"
+	// UserId 为从 metadata 读取 user id 的 key。
+	UserId = "user-id"
+	// AppId 为从 metadata 读取调用方 app id 的 key。
+	AppId = "app-id"
 )
 
+// Config 为自定义 gorm logger 的配置。
 type Config struct {
+	// Config 复用 gorm 内置 logger.Config（包含 SlowThreshold/LogLevel/Colorful 等）。
 	loger.Config
 
 	// 控制台是否输出日志
@@ -31,7 +37,9 @@ type Config struct {
 	DatabaseType int32
 }
 
+// New 构造一个 gorm logger，实现控制台输出与自定义回调输出。
 func New(config Config, handle func(b []byte)) loger.Interface {
+	// 定义各级别日志输出模板（可选彩色）。
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -41,6 +49,7 @@ func New(config Config, handle func(b []byte)) loger.Interface {
 		traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
 	)
 
+	// 若开启彩色输出，则替换模板为 gorm logger 预置的 ANSI 颜色字符串。
 	if config.Colorful {
 		infoStr = loger.Green + "%s\n" + loger.Reset + loger.Green + "[info] " + loger.Reset
 		warnStr = loger.BlueBold + "%s\n" + loger.Reset + loger.Magenta + "[warn] " + loger.Reset
@@ -50,69 +59,108 @@ func New(config Config, handle func(b []byte)) loger.Interface {
 		traceErrStr = loger.RedBold + "%s " + loger.MagentaBold + "%s\n" + loger.Reset + loger.Yellow + "[%.3fms] " + loger.BlueBold + "[rows:%v]" + loger.Reset + " %s"
 	}
 
+	// 返回实现 loger.Interface 的 logger 实例。
 	return &logger{
-		Config:       config.Config,
+		// 复用 gorm logger 配置。
+		Config: config.Config,
+		// 保存各级别输出模板。
 		infoStr:      infoStr,
 		warnStr:      warnStr,
 		errStr:       errStr,
 		traceStr:     traceStr,
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
-		handle:       handle,
-		console:      config.Console,
-		database:     config.Database,
+		// handle 为自定义回调，可用于写入结构化日志。
+		handle: handle,
+		// console 控制是否输出到控制台。
+		console: config.Console,
+		// database 记录库名便于聚合检索。
+		database: config.Database,
+		// databaseType 记录库类型便于聚合检索。
 		databaseType: config.DatabaseType,
 	}
 }
 
+// logger 为内部实现，满足 gorm 的 logger.Interface。
 type logger struct {
+	// Config 为 gorm logger 配置（嵌入以复用字段）。
 	loger.Config
-	infoStr, warnStr, errStr            string
+	// infoStr/warnStr/errStr 为普通日志模板。
+	infoStr, warnStr, errStr string
+	// traceStr/traceErrStr/traceWarnStr 为 SQL Trace 日志模板。
 	traceStr, traceErrStr, traceWarnStr string
-	database                            string
-	databaseType                        int32
-	console                             bool
-	handle                              func(b []byte)
+	// database 为库名。
+	database string
+	// databaseType 为库类型。
+	databaseType int32
+	// console 控制台输出开关。
+	console bool
+	// handle 为结构化日志回调。
+	handle func(b []byte)
 }
 
+// LogMode 设置日志级别，返回一个新的 logger（符合 gorm 约定）。
 func (l *logger) LogMode(level loger.LogLevel) loger.Interface {
+	// 复制一份，避免修改原实例带来的并发问题。
 	newLogger := *l
+	// 更新日志级别。
 	newLogger.LogLevel = level
+	// 返回新实例。
 	return &newLogger
 }
 
+// Info 输出 info 日志（受 LogLevel 与 console 开关控制）。
 func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
+	// 仅当启用控制台输出且 LogLevel 允许时才输出。
 	if l.console && l.LogLevel >= loger.Info {
+		// utils.FileWithLineNum 记录调用位置，便于定位。
 		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		// 输出到标准输出。
 		fmt.Printf(l.infoStr+msg+"\n", args...)
 	}
 }
 
+// Warn 输出 warn 日志（受 LogLevel 与 console 开关控制）。
 func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
+	// 仅当启用控制台输出且 LogLevel 允许时才输出。
 	if l.console && l.LogLevel >= loger.Warn {
+		// utils.FileWithLineNum 记录调用位置，便于定位。
 		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		// 输出到标准输出。
 		fmt.Printf(l.warnStr+msg+"\n", args...)
 	}
 }
 
+// Error 输出 error 日志（受 LogLevel 与 console 开关控制）。
 func (l *logger) Error(_ context.Context, msg string, data ...interface{}) {
+	// 仅当启用控制台输出且 LogLevel 允许时才输出。
 	if l.console && l.LogLevel >= loger.Error {
+		// utils.FileWithLineNum 记录调用位置，便于定位。
 		args := append([]interface{}{utils.FileWithLineNum()}, data...)
+		// 输出到标准输出。
 		fmt.Printf(l.errStr+msg+"\n", args...)
 	}
 }
 
+// Trace 记录 SQL 执行信息（成功/慢 SQL/错误）。
 func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	// Silent 模式不输出任何日志。
 	if l.LogLevel <= loger.Silent {
 		return
 	}
 
+	// elapsed 为 SQL 执行耗时。
 	elapsed := time.Since(begin)
+	// 按错误/慢 SQL/普通 SQL 分支处理。
 	switch {
 	case err != nil && l.LogLevel >= loger.Error && (!errors.Is(err, loger.ErrRecordNotFound) || !l.IgnoreRecordNotFoundError):
+		// 从回调取出 SQL 文本与影响行数。
 		sql, rows := fc()
+		// timer 为耗时的毫秒值（浮点便于输出 3 位小数）。
 		timer := float64(elapsed.Nanoseconds()) / 1e6
+		// file 为调用位置。
 		file := utils.FileWithLineNum()
+		// 控制台输出（若开启）。
 		if l.console {
 			if rows == -1 {
 				fmt.Printf(l.traceErrStr+"\n", file, err, timer, "-", sql)
@@ -120,13 +168,19 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 				fmt.Printf(l.traceErrStr+"\n", file, err, timer, rows, sql)
 			}
 		}
+		// 结构化回调输出。
 		l.handleLog(ctx, loger.Error, file, sql, err.Error(), elapsed)
 
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= loger.Warn:
+		// 从回调取出 SQL 文本与影响行数。
 		sql, rows := fc()
+		// slowLog 为慢 SQL 标记文本。
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
+		// timer 为耗时的毫秒值（浮点便于输出 3 位小数）。
 		timer := float64(elapsed.Nanoseconds()) / 1e6
+		// file 为调用位置。
 		file := utils.FileWithLineNum()
+		// 控制台输出（若开启）。
 		if l.console {
 			if rows == -1 {
 				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, "-", sql)
@@ -134,12 +188,17 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, rows, sql)
 			}
 		}
+		// 结构化回调输出。
 		l.handleLog(ctx, loger.Warn, file, sql, slowLog, elapsed)
 
 	case l.LogLevel == loger.Info:
+		// 从回调取出 SQL 文本与影响行数。
 		sql, rows := fc()
+		// timer 为耗时的毫秒值（浮点便于输出 3 位小数）。
 		timer := float64(elapsed.Nanoseconds()) / 1e6
+		// file 为调用位置。
 		file := utils.FileWithLineNum()
+		// 控制台输出（若开启）。
 		if l.console {
 			if rows == -1 {
 				fmt.Printf(l.traceStr+"\n", file, timer, "-", sql)
@@ -147,15 +206,19 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 				fmt.Printf(l.traceStr+"\n", file, timer, rows, sql)
 			}
 		}
+		// 结构化回调输出（成功分支）。
 		l.handleLog(ctx, loger.Info, file, sql, ResultSuccess, elapsed)
 	}
 }
 
+// handleLog 将日志以 JSON 形式写入回调（若提供）。
 func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt, result string, elapsed time.Duration) {
+	// 未设置回调时直接返回。
 	if l.handle == nil {
 		return
 	}
 
+	// logMap 为结构化日志内容，字段名保持相对稳定便于下游解析。
 	logMap := map[string]interface{}{
 		"Database":  l.database,
 		"Statement": smt,
@@ -166,6 +229,7 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		"Type":      l.databaseType,
 	}
 
+	// 从 gRPC metadata 中提取链路字段（存在则写入结构化日志）。
 	md, _ := metadata.FromIncomingContext(ctx)
 	if gd := md.Get(TraceId); len(gd) != 0 {
 		logMap["trace_id"] = gd[0]
@@ -177,7 +241,9 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		logMap["invoke_app_id"] = gd[0]
 	}
 
+	// 将结构化日志序列化为 JSON，序列化失败则忽略。
 	if b, err := json.Marshal(logMap); err == nil {
+		// 执行回调写入。
 		l.handle(b)
 	}
 }

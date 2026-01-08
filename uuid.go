@@ -2,7 +2,11 @@ package gormx
 
 import "github.com/google/uuid"
 
-// NewUUIDv7 generates a uuid version 7, panics on generation failure.
+// NewUUIDv7 生成一个 UUIDv7 字符串
 func NewUUIDv7() string {
-	return uuid.Must(uuid.NewV7()).String()
+	u, e := uuid.NewV7()
+	if e != nil {
+		return NewUUIDv7()
+	}
+	return u.String()
 }
