@@ -1,19 +1,13 @@
 package gormx
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"errors"
-	"os"
 	"strconv"
 	"sync/atomic"
 	"time"
 
-	"github.com/fireflycore/gormx/internal"
 	"github.com/go-sql-driver/mysql"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	loger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -48,59 +42,26 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 		}
 	}
 
-	// 若提供 TLS 证书配置，则注册 TLS 并写入 DSN 的 TLSConfig 名称。
-	if mc.Tls != nil && mc.Tls.CaCert != "" && mc.Tls.ClientCert != "" && mc.Tls.ClientCertKey != "" {
-		// certPool 用于保存 CA 证书链。
-		certPool := x509.NewCertPool()
-		// 读取 CA 证书文件内容。
-		caFile, err := os.ReadFile(mc.Tls.CaCert)
-		// 读取失败直接返回错误。
-		if err != nil {
-			return nil, err
-		}
-		// 将 CA 证书追加到证书池。
-		if ok := certPool.AppendCertsFromPEM(caFile); !ok {
-			return nil, errors.New("failed to append ca cert")
-		}
-
-		// 加载客户端证书与私钥，用于双向 TLS。
-		clientCert, err := tls.LoadX509KeyPair(mc.Tls.ClientCert, mc.Tls.ClientCertKey)
-		// 加载失败直接返回错误。
-		if err != nil {
-			return nil, err
-		}
-
-		// tlsConfig 为本次连接使用的 TLS 配置。
-		tlsConfig := tls.Config{
-			// Certificates 为客户端证书链。
-			Certificates: []tls.Certificate{clientCert},
-			// RootCAs 为服务端证书的信任根。
-			RootCAs: certPool,
-		}
-
-		// tlsConfigName 为唯一 TLS 配置名，避免 mysql.RegisterTLSConfig 重复注册冲突。
+	// tlsConfig 为构造好的 TLS 配置；tlsEnabled 表示是否启用；err 为构造过程的错误。
+	tlsConfig, tlsEnabled, err := newClientTLSConfig(mc.Tls)
+	// 构造 TLS 配置失败直接返回错误。
+	if err != nil {
+		return nil, err
+	}
+	// 启用 TLS 时，需要把 TLS 配置注册到 go-sql-driver/mysql。
+	if tlsEnabled {
+		// tlsConfigName 为全局唯一名，用于在 DSN 中引用对应的 TLS 配置。
 		tlsConfigName := "gormx_" + strconv.FormatUint(atomic.AddUint64(&mysqlTLSConfigSeq, 1), 10)
-		// 将 TLS 配置注册到 go-sql-driver/mysql 的全局注册表中。
-		if err := mysql.RegisterTLSConfig(tlsConfigName, &tlsConfig); err != nil {
+		// RegisterTLSConfig 将 tlsConfigName -> tlsConfig 注册到全局表。
+		if err = mysql.RegisterTLSConfig(tlsConfigName, tlsConfig); err != nil {
 			return nil, err
 		}
-		// 在 DSN 中引用该 TLS 配置名。
+		// 将 DSN 中的 TLSConfig 指向上面注册的配置名。
 		clientOptions.TLSConfig = tlsConfigName
 	}
 
-	gormLogger := loger.Discard
-	if mc.Logger {
-		gormLogger = internal.New(internal.Config{
-			Config: loger.Config{
-				SlowThreshold: 200 * time.Millisecond,
-				LogLevel:      loger.Info,
-				Colorful:      true,
-			},
-			Console:      mc.loggerConsole,
-			Database:     mc.Database,
-			DatabaseType: mc.Type,
-		}, mc.loggerHandle)
-	}
+	// gormLogger 根据配置构造（默认丢弃输出，开启 Logger 时输出）。
+	gormLogger := newGormLogger(&mc.Config)
 
 	db, err := gorm.Open(mysql2.Open(clientOptions.FormatDSN()), &gorm.Config{
 		// NamingStrategy 控制表名前缀与单复数规则。
