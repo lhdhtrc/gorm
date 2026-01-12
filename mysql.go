@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/go-sql-driver/mysql"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -43,7 +44,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 
 	// tlsConfig 为构造好的 TLS 配置；tlsEnabled 表示是否启用；err 为构造过程的错误。
-	tlsConfig, tlsEnabled, err := NewTLSConfig(mc.Tls)
+	tlsConfig, tlsEnabled, err := tlsx.NewTLSConfig(mc.Tls)
 	// 构造 TLS 配置失败直接返回错误。
 	if err != nil {
 		return nil, err

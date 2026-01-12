@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/postgres"
@@ -48,7 +49,7 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	}
 
 	// tlsConfig 为构造好的 TLS 配置；tlsEnabled 表示是否启用；err 为构造过程的错误。
-	tlsConfig, tlsEnabled, err := NewTLSConfig(mc.Tls)
+	tlsConfig, tlsEnabled, err := tlsx.NewTLSConfig(mc.Tls)
 	// 构造 TLS 配置失败直接返回错误。
 	if err != nil {
 		return nil, err

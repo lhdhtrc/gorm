@@ -1,5 +1,7 @@
 package gormx
 
+import "github.com/fireflycore/go-utils/tlsx"
+
 // Conf 为 gorm 初始化所需的配置项集合。
 type Conf struct {
 	// 1-postgres 2-oracle 3-sqlite 4-mysql 5-mssql
@@ -7,7 +9,7 @@ type Conf struct {
 	Type int32 `json:"type"`
 	// TLS加密配置（生产环境建议启用），如果不为null则启用tls加密
 	// Tls 为 TLS 配置，非空时启用 TLS。
-	Tls *TLS `json:"tls"`
+	Tls *tlsx.TLS `json:"tls"`
 
 	// Address 为数据库地址，一般为 host:port。
 	Address string `json:"address"`
