@@ -71,6 +71,7 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	}
 	// 若启用 TLS，则把 tlsConfig 注入到 pgx 连接配置中。
 	if tlsEnabled {
+		connConfig.TLSConfig.ServerName = host
 		connConfig.TLSConfig = tlsConfig
 	}
 

@@ -51,6 +51,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 	// 启用 TLS 时，需要把 TLS 配置注册到 go-sql-driver/mysql。
 	if tlsEnabled {
+		tlsConfig.ServerName = mc.Address
 		// tlsConfigName 为全局唯一名，用于在 DSN 中引用对应的 TLS 配置。
 		tlsConfigName := "gormx_" + strconv.FormatUint(atomic.AddUint64(&mysqlTLSConfigSeq, 1), 10)
 		// RegisterTLSConfig 将 tlsConfigName -> tlsConfig 注册到全局表。
