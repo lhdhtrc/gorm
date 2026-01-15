@@ -1,10 +1,13 @@
 package gormx
 
 import (
+	"errors"
+	"net"
 	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/fireflycore/go-utils/network"
 	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/go-sql-driver/mysql"
 	mysql2 "gorm.io/driver/mysql"
@@ -25,10 +28,19 @@ var mysqlTLSConfigSeq uint64
 
 // NewMysql 使用配置初始化 MySQL 的 gorm.DB，并可选执行 AutoMigrate。
 func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
+	if mc == nil {
+		return nil, errors.New("mysql: conf is nil")
+	}
+
+	host, port, err := network.SplitHostPort(mc.Address, "3306")
+	if err != nil {
+		return nil, err
+	}
+
 	// clientOptions 为 go-sql-driver/mysql 的连接配置。
 	clientOptions := mysql.Config{
 		Net:    "tcp",
-		Addr:   mc.Address,
+		Addr:   net.JoinHostPort(host, port),
 		DBName: mc.Database,
 		// Loc 统一使用 UTC。
 		Loc: time.UTC,
@@ -51,7 +63,7 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	}
 	// 启用 TLS 时，需要把 TLS 配置注册到 go-sql-driver/mysql。
 	if tlsEnabled {
-		tlsConfig.ServerName = mc.Address
+		tlsConfig.ServerName = host
 		// tlsConfigName 为全局唯一名，用于在 DSN 中引用对应的 TLS 配置。
 		tlsConfigName := "gormx_" + strconv.FormatUint(atomic.AddUint64(&mysqlTLSConfigSeq, 1), 10)
 		// RegisterTLSConfig 将 tlsConfigName -> tlsConfig 注册到全局表。
