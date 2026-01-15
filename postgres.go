@@ -2,11 +2,10 @@ package gormx
 
 import (
 	"errors"
-	"net"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/fireflycore/go-utils/network"
 	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -25,8 +24,12 @@ type PostgresDB struct {
 
 // NewPostgres 使用配置初始化 Postgres 的 gorm.DB，并可选执行 AutoMigrate。
 func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
+	if mc == nil {
+		return nil, errors.New("postgres: conf is nil")
+	}
+
 	// 将 address 拆为 host/port，未带端口时使用默认值 5432。
-	host, port, err := splitHostPort(mc.Address, "5432")
+	host, port, err := network.SplitHostPort(mc.Address, "5432")
 	// 解析失败直接返回错误。
 	if err != nil {
 		return nil, err
@@ -71,8 +74,8 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	}
 	// 若启用 TLS，则把 tlsConfig 注入到 pgx 连接配置中。
 	if tlsEnabled {
-		connConfig.TLSConfig.ServerName = host
 		connConfig.TLSConfig = tlsConfig
+		connConfig.TLSConfig.ServerName = host
 	}
 
 	// 使用 pgx stdlib 将 ConnConfig 转成 *sql.DB，交给 gorm driver 复用连接池。
@@ -138,41 +141,4 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 
 	// 返回封装后的 PostgresDB。
 	return &PostgresDB{DB: db}, nil
-}
-
-// splitHostPort 将 addr 解析为 host/port，addr 不带端口时返回 defaultPort。
-func splitHostPort(addr string, defaultPort string) (string, string, error) {
-	// 空地址直接返回错误。
-	if addr == "" {
-		return "", "", errors.New("empty address")
-	}
-
-	// 优先尝试按 host:port 解析。
-	host, port, err := net.SplitHostPort(addr)
-	// 解析成功则做基本校验后返回。
-	if err == nil {
-		// host 不能为空。
-		if host == "" {
-			return "", "", errors.New("empty host")
-		}
-		// 端口为空时使用默认端口。
-		if port == "" {
-			return host, defaultPort, nil
-		}
-		// 校验端口为数字。
-		if _, err := strconv.Atoi(port); err != nil {
-			return "", "", err
-		}
-		// 返回解析出的 host 与 port。
-		return host, port, nil
-	}
-
-	// 未带端口时，把整个 addr 当作 host。
-	host = strings.TrimSpace(addr)
-	// host 不能为空。
-	if host == "" {
-		return "", "", errors.New("empty host")
-	}
-	// 返回 host 与默认端口。
-	return host, defaultPort, nil
 }
