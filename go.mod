@@ -3,7 +3,7 @@ module github.com/fireflycore/gormx
 go 1.25.1
 
 require (
-	github.com/fireflycore/go-utils v0.3.5
+	github.com/fireflycore/go-utils v0.3.6
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
