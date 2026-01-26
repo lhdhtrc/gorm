@@ -16,12 +16,14 @@ const (
 	// ResultSuccess 表示成功执行 SQL 的结果标记。
 	ResultSuccess = "success"
 
+	// Firefly系统自定义头部（统一前缀）
+	HeaderPrefix = "x-firefly-"
 	// TraceId 为从 metadata 读取 trace id 的 key。
-	TraceId = "trace-id"
+	TraceId = HeaderPrefix + "trace-id"
 	// UserId 为从 metadata 读取 user id 的 key。
-	UserId = "user-id"
+	UserId = HeaderPrefix + "user-id"
 	// AppId 为从 metadata 读取调用方 app id 的 key。
-	AppId = "app-id"
+	AppId = HeaderPrefix + "app-id"
 )
 
 // Config 为自定义 gorm logger 的配置。
