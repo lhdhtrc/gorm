@@ -228,7 +228,7 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		"Statement": smt,
 		"Result":    result,
 		"Duration":  elapsed.Microseconds(),
-		"Level":     level,
+		"Level":     levelToInt(level),
 		"Path":      path,
 		"Type":      l.databaseType,
 	}
@@ -260,4 +260,17 @@ func fileWithLineNum() string {
 		}
 	}
 	return ""
+}
+
+func levelToInt(level loger.LogLevel) int {
+	switch level {
+	case loger.Info:
+		return 1
+	case loger.Warn:
+		return 2
+	case loger.Error:
+		return 3
+	default:
+		return 0
+	}
 }
