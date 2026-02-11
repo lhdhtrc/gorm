@@ -61,11 +61,11 @@ func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 		errStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s]\n" + loger.Green + "%s\n" + loger.Red + "%s\n" + loger.Reset
 
 		// date, level, db, rows, timer, file, sql
-		traceStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Reset + "%s"
+		traceStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Reset + "%s"
 		// date, level, db, rows, timer, file, slowLog, sql
 		traceWarnStr = loger.YellowBold + "[%s] " + loger.YellowBold + "[warn] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Yellow + "%s\n" + loger.Reset + "%s"
 		// date, level, db, rows, timer, file, err, sql
-		traceErrStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Red + "%s\n" + loger.Reset + "%s"
+		traceErrStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Red + "%s\n" + loger.Reset + "%s"
 	}
 
 	// 返回实现 loger.Interface 的 logger 实例
