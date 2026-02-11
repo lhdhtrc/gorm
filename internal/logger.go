@@ -41,26 +41,31 @@ type Config struct {
 	DatabaseType int32
 }
 
-// New 构造一个 gorm logger，实现控制台输出与自定义回调输出
+// NewLogger 构造一个 gorm logger，实现控制台输出与自定义回调输出
 func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 	// 定义各级别日志输出模板（可选彩色）
 	var (
-		infoStr      = "%s\n[info] "
-		warnStr      = "%s\n[warn] "
-		errStr       = "%s\n[error] "
-		traceStr     = "%s\n[%.3fms] [rows:%v] %s"
-		traceWarnStr = "%s %s\n[%.3fms] [rows:%v] %s"
-		traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
+		infoStr      = "[%s] [info] [Database:%s] %s %s"
+		warnStr      = "[%s] [warn] [Database:%s] %s %s"
+		errStr       = "[%s] [error] [Database:%s] %s %s"
+		traceStr     = "[%s] [info] [Database:%s] [Rows:%v] [Duration:%.3fms] %s\n%s"
+		traceWarnStr = "[%s] [warn] [Database:%s] [Rows:%v] [Duration:%.3fms] %s %s\n%s"
+		traceErrStr  = "[%s] [error] [Database:%s] [Rows:%v] [Duration:%.3fms] %s %s\n%s"
 	)
 
 	// 若开启彩色输出，则替换模板为 gorm logger 预置的 ANSI 颜色字符串
 	if config.Colorful {
-		infoStr = loger.Green + "%s\n" + loger.Reset + loger.Green + "[info] " + loger.Reset
-		warnStr = loger.BlueBold + "%s\n" + loger.Reset + loger.Magenta + "[warn] " + loger.Reset
-		errStr = loger.Magenta + "%s\n" + loger.Reset + loger.Red + "[error] " + loger.Reset
-		traceStr = loger.Green + "%s\n" + loger.Reset + loger.Yellow + "[%.3fms] " + loger.BlueBold + "[rows:%v]" + loger.Reset + " %s"
-		traceWarnStr = loger.Green + "%s " + loger.Yellow + "%s\n" + loger.Reset + loger.RedBold + "[%.3fms] " + loger.Yellow + "[rows:%v]" + loger.Magenta + " %s" + loger.Reset
-		traceErrStr = loger.RedBold + "%s " + loger.MagentaBold + "%s\n" + loger.Reset + loger.Yellow + "[%.3fms] " + loger.BlueBold + "[rows:%v]" + loger.Reset + " %s"
+		// date, level, db, file, msg
+		infoStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.Green + "%s " + loger.Reset + "%s"
+		warnStr = loger.YellowBold + "[%s] " + loger.YellowBold + "[warn] " + loger.BlueBold + "[Database:%s] " + loger.Green + "%s " + loger.Reset + "%s"
+		errStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.Green + "%s " + loger.Reset + "%s"
+
+		// date, level, db, rows, timer, file, sql
+		traceStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms] " + loger.Green + "%s\n" + loger.Reset + "%s"
+		// date, level, db, rows, timer, file, slowLog, sql
+		traceWarnStr = loger.YellowBold + "[%s] " + loger.YellowBold + "[warn] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms] " + loger.Green + "%s " + loger.Yellow + "%s\n" + loger.Reset + "%s"
+		// date, level, db, rows, timer, file, err, sql
+		traceErrStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms] " + loger.Green + "%s " + loger.Red + "%s\n" + loger.Reset + "%s"
 	}
 
 	// 返回实现 loger.Interface 的 logger 实例
@@ -117,10 +122,12 @@ func (l *logger) LogMode(level loger.LogLevel) loger.Interface {
 func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
 	// 仅当启用控制台输出且 LogLevel 允许时才输出
 	if l.console && l.LogLevel >= loger.Info {
-		// fileWithLineNum 记录调用位置，便于定位
-		args := append([]interface{}{fileWithLineNum()}, data...)
-		// 输出到标准输出
-		fmt.Printf(l.infoStr+msg+"\n", args...)
+		date := time.Now().Format(time.DateTime)
+		file := fileWithLineNum()
+		// msg 和 data 组合成完整消息
+		fullMsg := fmt.Sprintf(msg, data...)
+		// 输出到标准输出: date, db, file, msg
+		fmt.Printf(l.infoStr+"\n", date, l.database, file, fullMsg)
 	}
 }
 
@@ -128,10 +135,11 @@ func (l *logger) Info(_ context.Context, msg string, data ...interface{}) {
 func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
 	// 仅当启用控制台输出且 LogLevel 允许时才输出
 	if l.console && l.LogLevel >= loger.Warn {
-		// fileWithLineNum 记录调用位置，便于定位
-		args := append([]interface{}{fileWithLineNum()}, data...)
-		// 输出到标准输出
-		fmt.Printf(l.warnStr+msg+"\n", args...)
+		date := time.Now().Format(time.DateTime)
+		file := fileWithLineNum()
+		fullMsg := fmt.Sprintf(msg, data...)
+		// 输出到标准输出: date, db, file, msg
+		fmt.Printf(l.warnStr+"\n", date, l.database, file, fullMsg)
 	}
 }
 
@@ -139,10 +147,11 @@ func (l *logger) Warn(_ context.Context, msg string, data ...interface{}) {
 func (l *logger) Error(_ context.Context, msg string, data ...interface{}) {
 	// 仅当启用控制台输出且 LogLevel 允许时才输出
 	if l.console && l.LogLevel >= loger.Error {
-		// fileWithLineNum 记录调用位置，便于定位
-		args := append([]interface{}{fileWithLineNum()}, data...)
-		// 输出到标准输出
-		fmt.Printf(l.errStr+msg+"\n", args...)
+		date := time.Now().Format(time.DateTime)
+		file := fileWithLineNum()
+		fullMsg := fmt.Sprintf(msg, data...)
+		// 输出到标准输出: date, db, file, msg
+		fmt.Printf(l.errStr+"\n", date, l.database, file, fullMsg)
 	}
 }
 
@@ -164,13 +173,16 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		// file 为调用位置
 		file := fileWithLineNum()
+		date := time.Now().Format(time.DateTime)
+
 		// 控制台输出（若开启）
 		if l.console {
-			if rows == -1 {
-				fmt.Printf(l.traceErrStr+"\n", file, err, timer, "-", sql)
-			} else {
-				fmt.Printf(l.traceErrStr+"\n", file, err, timer, rows, sql)
+			rowsStr := "-"
+			if rows != -1 {
+				rowsStr = fmt.Sprintf("%v", rows)
 			}
+			// traceErrStr expects: date, db, rows, timer, file, err, sql
+			fmt.Printf(l.traceErrStr+"\n", date, l.database, rowsStr, timer, file, err, sql)
 		}
 		// 结构化回调输出
 		l.handleLog(ctx, loger.Error, file, sql, err.Error(), elapsed)
@@ -184,13 +196,16 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		// file 为调用位置
 		file := fileWithLineNum()
+		date := time.Now().Format(time.DateTime)
+
 		// 控制台输出（若开启）
 		if l.console {
-			if rows == -1 {
-				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, "-", sql)
-			} else {
-				fmt.Printf(l.traceWarnStr+"\n", file, slowLog, timer, rows, sql)
+			rowsStr := "-"
+			if rows != -1 {
+				rowsStr = fmt.Sprintf("%v", rows)
 			}
+			// traceWarnStr expects: date, db, rows, timer, file, slowLog, sql
+			fmt.Printf(l.traceWarnStr+"\n", date, l.database, rowsStr, timer, file, slowLog, sql)
 		}
 		// 结构化回调输出
 		l.handleLog(ctx, loger.Warn, file, sql, slowLog, elapsed)
@@ -202,13 +217,16 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 		timer := float64(elapsed.Nanoseconds()) / 1e6
 		// file 为调用位置
 		file := fileWithLineNum()
+		date := time.Now().Format(time.DateTime)
+
 		// 控制台输出（若开启）
 		if l.console {
-			if rows == -1 {
-				fmt.Printf(l.traceStr+"\n", file, timer, "-", sql)
-			} else {
-				fmt.Printf(l.traceStr+"\n", file, timer, rows, sql)
+			rowsStr := "-"
+			if rows != -1 {
+				rowsStr = fmt.Sprintf("%v", rows)
 			}
+			// traceStr expects: date, db, rows, timer, file, sql
+			fmt.Printf(l.traceStr+"\n", date, l.database, rowsStr, timer, file, sql)
 		}
 		// 结构化回调输出（成功分支）
 		l.handleLog(ctx, loger.Info, file, sql, ResultSuccess, elapsed)
