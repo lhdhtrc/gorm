@@ -48,9 +48,9 @@ func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 		infoStr      = "[%s] [info] [Database:%s]\n%s\n%s"
 		warnStr      = "[%s] [warn] [Database:%s]\n%s\n%s"
 		errStr       = "[%s] [error] [Database:%s]\n%s\n%s"
-		traceStr     = "[%s] [info] [Database:%s] [Rows:%v] [Duration:%.3fms]\n%s\n%s"
-		traceWarnStr = "[%s] [warn] [Database:%s] [Rows:%v] [Duration:%.3fms]\n%s\n%s\n%s"
-		traceErrStr  = "[%s] [error] [Database:%s] [Rows:%v] [Duration:%.3fms]\n%s\n%s\n%s"
+		traceStr     = "[%s] [info] [Database:%s] [Rows:%v] [Duration:%.3fms] [Path:%s]\n%s"
+		traceWarnStr = "[%s] [warn] [Database:%s] [Rows:%v] [Duration:%.3fms]	[Path:%s]\n%s\n%s"
+		traceErrStr  = "[%s] [error] [Database:%s] [Rows:%v] [Duration:%.3fms] [Path:%s]\n%s\n%s"
 	)
 
 	// 若开启彩色输出，则替换模板为 gorm logger 预置的 ANSI 颜色字符串
@@ -61,11 +61,11 @@ func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 		errStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s]\n" + loger.Green + "%s\n" + loger.Red + "%s\n" + loger.Reset
 
 		// date, level, db, rows, timer, file, sql
-		traceStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]\n" + loger.Green + "%s\n" + loger.Reset + "%s"
+		traceStr = loger.BlueBold + "[%s] " + loger.BlueBold + "[info] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Reset + "%s"
 		// date, level, db, rows, timer, file, slowLog, sql
-		traceWarnStr = loger.YellowBold + "[%s] " + loger.YellowBold + "[warn] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms]\n" + loger.Green + "%s\n" + loger.Yellow + "%s\n" + loger.Reset + "%s"
+		traceWarnStr = loger.YellowBold + "[%s] " + loger.YellowBold + "[warn] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Yellow + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Yellow + "%s\n" + loger.Reset + "%s"
 		// date, level, db, rows, timer, file, err, sql
-		traceErrStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]\n" + loger.Green + "%s\n" + loger.Red + "%s\n" + loger.Reset + "%s"
+		traceErrStr = loger.RedBold + "[%s] " + loger.RedBold + "[error] " + loger.BlueBold + "[Database:%s] " + loger.YellowBold + "[Rows:%v]" + loger.Green + " [Duration:%.3fms]" + loger.Green + " [Path:%s]\n" + loger.Red + "%s\n" + loger.Reset + "%s"
 	}
 
 	// 返回实现 loger.Interface 的 logger 实例
