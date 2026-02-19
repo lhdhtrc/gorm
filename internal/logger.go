@@ -28,6 +28,24 @@ const (
 	AppId = HeaderPrefix + "app-id"
 )
 
+// OperationLogger 表示操作日志。
+type OperationLogger struct {
+	Database  string `json:"database"`
+	Statement string `json:"statement"`
+	Result    string `json:"result"`
+	Path      string `json:"path"`
+
+	Duration uint64 `json:"duration"`
+
+	Level uint32 `json:"level"`
+	Type  uint32 `json:"type"`
+
+	TraceId     string `json:"trace_id"`
+	UserId      string `json:"user_id"`
+	TargetAppId string `json:"target_app_id"`
+	InvokeAppId string `json:"invoke_app_id"`
+}
+
 // Config 为自定义 gorm logger 的配置
 type Config struct {
 	// Config 复用 gorm 内置 logger.Config（包含 SlowThreshold/LogLevel/Colorful 等）
@@ -240,31 +258,33 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		return
 	}
 
-	// logMap 为结构化日志内容，字段名保持相对稳定便于下游解析
-	logMap := map[string]interface{}{
-		"Database":  l.database,
-		"Statement": smt,
-		"Result":    result,
-		"Duration":  elapsed.Microseconds(),
-		"Level":     levelConvertValue(level),
-		"Path":      path,
-		"Type":      l.databaseType,
+	// log 为结构化日志内容，字段名保持相对稳定便于下游解析
+	log := &OperationLogger{
+		Database:  l.database,
+		Statement: smt,
+		Result:    result,
+		Path:      path,
+
+		Duration: uint64(elapsed.Microseconds()),
+
+		Level: levelConvertValue(level),
+		Type:  l.databaseType,
 	}
 
 	// 从 gRPC metadata 中提取链路字段（存在则写入结构化日志）
 	md, _ := metadata.FromIncomingContext(ctx)
 	if gd := md.Get(TraceId); len(gd) != 0 {
-		logMap["trace_id"] = gd[0]
+		log.TraceId = gd[0]
 	}
 	if gd := md.Get(UserId); len(gd) != 0 {
-		logMap["user_id"] = gd[0]
+		log.UserId = gd[0]
 	}
 	if gd := md.Get(AppId); len(gd) != 0 {
-		logMap["invoke_app_id"] = gd[0]
+		log.InvokeAppId = gd[0]
 	}
 
 	// 将结构化日志序列化为 JSON，序列化失败则忽略
-	if b, err := json.Marshal(logMap); err == nil {
+	if b, err := json.Marshal(log); err == nil {
 		// 执行回调写入
 		l.handle(b)
 	}
