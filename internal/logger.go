@@ -38,7 +38,7 @@ type Config struct {
 	// 数据库
 	Database string
 	// 数据库类型
-	DatabaseType int32
+	DatabaseType uint32
 }
 
 // NewLogger 构造一个 gorm logger，实现控制台输出与自定义回调输出
@@ -101,7 +101,7 @@ type logger struct {
 	// database 为库名
 	database string
 	// databaseType 为库类型
-	databaseType int32
+	databaseType uint32
 	// console 控制台输出开关
 	console bool
 	// handle 为结构化日志回调
@@ -246,7 +246,7 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		"Statement": smt,
 		"Result":    result,
 		"Duration":  elapsed.Microseconds(),
-		"Level":     levelToInt(level),
+		"Level":     levelConvertValue(level),
 		"Path":      path,
 		"Type":      l.databaseType,
 	}
@@ -280,7 +280,7 @@ func fileWithLineNum() string {
 	return ""
 }
 
-func levelToInt(level loger.LogLevel) int {
+func levelConvertValue(level loger.LogLevel) uint32 {
 	switch level {
 	case loger.Info:
 		return 1

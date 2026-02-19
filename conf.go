@@ -6,7 +6,7 @@ import "github.com/fireflycore/go-utils/tlsx"
 type Conf struct {
 	// 1-postgres 2-oracle 3-sqlite 4-mysql 5-mssql
 	// Type 表示数据库类型枚举。
-	Type int32 `json:"type"`
+	Type uint32 `json:"type"`
 	// TLS加密配置（生产环境建议启用），如果不为null则启用tls加密
 	// Tls 为 TLS 配置，非空时启用 TLS。
 	Tls *tlsx.TLS `json:"tls"`
