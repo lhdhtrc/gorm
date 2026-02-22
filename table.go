@@ -15,14 +15,6 @@ type Table struct {
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
 }
 
-// TableUnique 为带 uniqueIndex 的基类（以 DeletedAt 实现“软删除下的唯一性”）。
-type TableUnique struct {
-	Id        uint64                `json:"id" gorm:"primaryKey;"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
-}
-
 // TableUUID 为 string 主键基类（使用 UUIDv7）。
 type TableUUID struct {
 	Id        string                `json:"id" gorm:"type:uuid;primaryKey;"`
@@ -33,20 +25,6 @@ type TableUUID struct {
 
 // BeforeCreate 在插入前生成 UUIDv7 作为主键。
 func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
-	t.Id = NewUUIDv7()
-	return nil
-}
-
-// TableUUIDUnique 为带 uniqueIndex 的 UUID 主键基类。
-type TableUUIDUnique struct {
-	Id        string                `json:"id" gorm:"type:uuid;primaryKey;"`
-	CreatedAt time.Time             `json:"created_at"`
-	UpdatedAt time.Time             `json:"updated_at"`
-	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;uniqueIndex:idx_unique"`
-}
-
-// BeforeCreate 在插入前生成 UUIDv7 作为主键。
-func (t *TableUUIDUnique) BeforeCreate(_ *gorm.DB) error {
 	t.Id = NewUUIDv7()
 	return nil
 }
