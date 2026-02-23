@@ -3,7 +3,6 @@ package gormx
 import (
 	"time"
 
-	"gorm.io/gorm"
 	"gorm.io/plugin/soft_delete"
 )
 
@@ -15,16 +14,10 @@ type Table struct {
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
 }
 
-// TableUUID 为 string 主键基类（使用 UUIDv7）。
+// TableUUID 为 string 主键基类（使用 UUIDv7，数据库自动生成）。
 type TableUUID struct {
-	Id        string                `json:"id" gorm:"type:uuid;primaryKey;"`
+	Id        string                `json:"id" gorm:"type:uuid;primaryKey;default:uuidv7()"`
 	CreatedAt time.Time             `json:"created_at"`
 	UpdatedAt time.Time             `json:"updated_at"`
 	DeletedAt soft_delete.DeletedAt `json:"deleted_at" gorm:"default:0;index"`
-}
-
-// BeforeCreate 在插入前生成 UUIDv7 作为主键。
-func (t *TableUUID) BeforeCreate(_ *gorm.DB) error {
-	t.Id = NewUUIDv7()
-	return nil
 }
