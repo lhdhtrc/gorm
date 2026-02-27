@@ -22,8 +22,6 @@ const (
 	HeaderPrefix = "x-firefly-"
 	// TraceId 为从 metadata 读取 trace id 的 key
 	TraceId = HeaderPrefix + "trace-id"
-	// ParentId 为从 metadata 读取 parent id 的 key
-	ParentId = HeaderPrefix + "parent-id"
 	// SpanId 为从 metadata 读取 span id 的 key
 	SpanId = HeaderPrefix + "span-id"
 
@@ -47,7 +45,6 @@ type OperationLogger struct {
 
 	TraceId  string `json:"trace_id"`
 	ParentId string `json:"parent_id"`
-	SpanId   string `json:"span_id"`
 
 	UserId      string `json:"user_id"`
 	TargetAppId string `json:"target_app_id"`
@@ -284,11 +281,8 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 	if gd := md.Get(TraceId); len(gd) != 0 {
 		log.TraceId = gd[0]
 	}
-	if gd := md.Get(ParentId); len(gd) != 0 {
+	if gd := md.Get(SpanId); len(gd) == 0 {
 		log.ParentId = gd[0]
-	}
-	if gd := md.Get(SpanId); len(gd) != 0 {
-		log.SpanId = gd[0]
 	}
 	if gd := md.Get(UserId); len(gd) != 0 {
 		log.UserId = gd[0]
