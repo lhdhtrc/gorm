@@ -21,9 +21,11 @@ const (
 	// Firefly系统自定义头部（统一前缀）
 	HeaderPrefix = "x-firefly-"
 	// TraceId 为从 metadata 读取 trace id 的 key
-	TraceId  = HeaderPrefix + "trace-id"
+	TraceId = HeaderPrefix + "trace-id"
+	// ParentId 为从 metadata 读取 parent id 的 key
 	ParentId = HeaderPrefix + "parent-id"
-	SpanId   = HeaderPrefix + "span-id"
+	// SpanId 为从 metadata 读取 span id 的 key
+	SpanId = HeaderPrefix + "span-id"
 
 	// UserId 为从 metadata 读取 user id 的 key
 	UserId = HeaderPrefix + "user-id"
