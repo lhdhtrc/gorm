@@ -281,7 +281,7 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 	if gd := md.Get(TraceId); len(gd) != 0 {
 		log.TraceId = gd[0]
 	}
-	if gd := md.Get(SpanId); len(gd) == 0 {
+	if gd := md.Get(SpanId); len(gd) != 0 {
 		log.ParentId = gd[0]
 	}
 	if gd := md.Get(UserId); len(gd) != 0 {
