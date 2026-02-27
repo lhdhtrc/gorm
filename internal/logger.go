@@ -21,7 +21,10 @@ const (
 	// Firefly系统自定义头部（统一前缀）
 	HeaderPrefix = "x-firefly-"
 	// TraceId 为从 metadata 读取 trace id 的 key
-	TraceId = HeaderPrefix + "trace-id"
+	TraceId  = HeaderPrefix + "trace-id"
+	ParentId = HeaderPrefix + "parent-id"
+	SpanId   = HeaderPrefix + "span-id"
+
 	// UserId 为从 metadata 读取 user id 的 key
 	UserId = HeaderPrefix + "user-id"
 	// AppId 为从 metadata 读取调用方 app id 的 key
@@ -40,7 +43,10 @@ type OperationLogger struct {
 	Level uint32 `json:"level"`
 	Type  uint32 `json:"type"`
 
-	TraceId     string `json:"trace_id"`
+	TraceId  string `json:"trace_id"`
+	ParentId string `json:"parent_id"`
+	SpanId   string `json:"span_id"`
+
 	UserId      string `json:"user_id"`
 	TargetAppId string `json:"target_app_id"`
 	InvokeAppId string `json:"invoke_app_id"`
@@ -275,6 +281,12 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 	md, _ := metadata.FromIncomingContext(ctx)
 	if gd := md.Get(TraceId); len(gd) != 0 {
 		log.TraceId = gd[0]
+	}
+	if gd := md.Get(ParentId); len(gd) != 0 {
+		log.ParentId = gd[0]
+	}
+	if gd := md.Get(SpanId); len(gd) != 0 {
+		log.SpanId = gd[0]
 	}
 	if gd := md.Get(UserId); len(gd) != 0 {
 		log.UserId = gd[0]
