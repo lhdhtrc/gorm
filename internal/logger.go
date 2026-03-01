@@ -29,6 +29,8 @@ const (
 	UserId = HeaderPrefix + "user-id"
 	// AppId 为从 metadata 读取调用方 app id 的 key
 	AppId = HeaderPrefix + "app-id"
+	// TenantId 为从 metadata 读取调用方 tenant id 的key
+	TenantId = HeaderPrefix + "tenant-id"
 )
 
 // OperationLogger 表示操作日志。
@@ -46,9 +48,12 @@ type OperationLogger struct {
 	TraceId  string `json:"trace_id"`
 	ParentId string `json:"parent_id"`
 
-	UserId      string `json:"user_id"`
 	TargetAppId string `json:"target_app_id"`
 	InvokeAppId string `json:"invoke_app_id"`
+
+	UserId   string `json:"user_id"`
+	AppId    string `json:"app_id"`
+	TenantId string `json:"tenant_id"`
 }
 
 // Config 为自定义 gorm logger 的配置
@@ -288,7 +293,11 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		log.UserId = gd[0]
 	}
 	if gd := md.Get(AppId); len(gd) != 0 {
+		log.AppId = gd[0]
 		log.InvokeAppId = gd[0]
+	}
+	if gd := md.Get(TenantId); len(gd) != 0 {
+		log.TenantId = gd[0]
 	}
 
 	// 将结构化日志序列化为 JSON，序列化失败则忽略
