@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fireflycore/go-micro/constant"
+	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
 	loger "gorm.io/gorm/logger"
 )
@@ -17,20 +21,6 @@ import (
 const (
 	// ResultSuccess 表示成功执行 SQL 的结果标记
 	ResultSuccess = "success"
-
-	// Firefly系统自定义头部（统一前缀）
-	HeaderPrefix = "x-firefly-"
-	// TraceId 为从 metadata 读取 trace id 的 key
-	TraceId = HeaderPrefix + "trace-id"
-	// SpanId 为从 metadata 读取 span id 的 key
-	SpanId = HeaderPrefix + "span-id"
-
-	// UserId 为从 metadata 读取 user id 的 key
-	UserId = HeaderPrefix + "user-id"
-	// AppId 为从 metadata 读取调用方 app id 的 key
-	AppId = HeaderPrefix + "app-id"
-	// TenantId 为从 metadata 读取调用方 tenant id 的key
-	TenantId = HeaderPrefix + "tenant-id"
 )
 
 // OperationLogger 表示操作日志。
@@ -70,7 +60,7 @@ type Config struct {
 }
 
 // NewLogger 构造一个 gorm logger，实现控制台输出与自定义回调输出
-func NewLogger(config Config, handle func(b []byte)) loger.Interface {
+func NewLogger(config Config) loger.Interface {
 	// 定义各级别日志输出模板（可选彩色）
 	var (
 		infoStr      = "[%s] [info] [Database:%s]\n%s\n%s"
@@ -107,8 +97,6 @@ func NewLogger(config Config, handle func(b []byte)) loger.Interface {
 		traceStr:     traceStr,
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
-		// handle 为自定义回调，可用于写入结构化日志
-		handle: handle,
 		// console 控制是否输出到控制台
 		console: config.Console,
 		// database 记录库名便于聚合检索
@@ -132,8 +120,6 @@ type logger struct {
 	databaseType uint32
 	// console 控制台输出开关
 	console bool
-	// handle 为结构化日志回调
-	handle func(b []byte)
 }
 
 // LogMode 设置日志级别，返回一个新的 logger（符合 gorm 约定）
@@ -263,13 +249,8 @@ func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 
 // handleLog 将日志以 JSON 形式写入回调（若提供）
 func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt, result string, elapsed time.Duration) {
-	// 未设置回调时直接返回
-	if l.handle == nil {
-		return
-	}
-
 	// log 为结构化日志内容，字段名保持相对稳定便于下游解析
-	log := &OperationLogger{
+	logData := &OperationLogger{
 		Database:  l.database,
 		Statement: smt,
 		Result:    result,
@@ -281,29 +262,103 @@ func (l *logger) handleLog(ctx context.Context, level loger.LogLevel, path, smt,
 		Type:  l.databaseType,
 	}
 
-	// 从 gRPC metadata 中提取链路字段（存在则写入结构化日志）
-	md, _ := metadata.FromIncomingContext(ctx)
-	if gd := md.Get(TraceId); len(gd) != 0 {
-		log.TraceId = gd[0]
-	}
-	if gd := md.Get(SpanId); len(gd) != 0 {
-		log.ParentId = gd[0]
-	}
-	if gd := md.Get(UserId); len(gd) != 0 {
-		log.UserId = gd[0]
-	}
-	if gd := md.Get(AppId); len(gd) != 0 {
-		log.AppId = gd[0]
-		log.InvokeAppId = gd[0]
-	}
-	if gd := md.Get(TenantId); len(gd) != 0 {
-		log.TenantId = gd[0]
+	// 从 OTel span context 中提取链路字段（优先）
+	spanCtx := trace.SpanFromContext(ctx).SpanContext()
+	if spanCtx.IsValid() {
+		logData.TraceId = spanCtx.TraceID().String()
+		logData.ParentId = spanCtx.SpanID().String()
 	}
 
-	// 将结构化日志序列化为 JSON，序列化失败则忽略
-	if b, err := json.Marshal(log); err == nil {
-		// 执行回调写入
-		l.handle(b)
+	// 从 gRPC metadata 中提取链路字段（存在则写入结构化日志，作为兼容兜底）
+	md, _ := metadata.FromIncomingContext(ctx)
+	if gd := md.Get(constant.UserId); len(gd) != 0 {
+		logData.UserId = gd[0]
+	}
+	if gd := md.Get(constant.AppId); len(gd) != 0 {
+		logData.AppId = gd[0]
+	}
+	if gd := md.Get(constant.InvokeServiceAppId); len(gd) != 0 {
+		logData.InvokeAppId = gd[0]
+	}
+	if gd := md.Get(constant.TargetServiceAppId); len(gd) != 0 {
+		logData.TargetAppId = gd[0]
+	}
+	if gd := md.Get(constant.TenantId); len(gd) != 0 {
+		logData.TenantId = gd[0]
+	}
+
+	l.emitOTelOperationLog(ctx, level, logData)
+}
+
+func (l *logger) emitOTelOperationLog(ctx context.Context, level loger.LogLevel, logData *OperationLogger) {
+	if logData == nil {
+		return
+	}
+
+	otelLogger := global.Logger("gormx")
+
+	var record log.Record
+	record.SetTimestamp(time.Now())
+	record.SetSeverity(convertOTelSeverity(level))
+	record.SetSeverityText(convertOTelSeverityText(level))
+
+	if b, err := json.Marshal(logData); err == nil {
+		record.SetBody(log.StringValue(string(b)))
+	} else {
+		record.SetBody(log.StringValue(logData.Statement))
+	}
+
+	record.AddAttributes(
+		log.String("log_type", "operation"),
+		log.String("database", logData.Database),
+		log.String("statement", logData.Statement),
+		log.String("result", logData.Result),
+		log.String("path", logData.Path),
+		log.Int64("duration", int64(logData.Duration)),
+		log.Int64("db_type", int64(logData.Type)),
+	)
+	if logData.UserId != "" {
+		record.AddAttributes(log.String("user_id", logData.UserId))
+	}
+	if logData.AppId != "" {
+		record.AddAttributes(log.String("app_id", logData.AppId))
+	}
+	if logData.InvokeAppId != "" {
+		record.AddAttributes(log.String("invoke_app_id", logData.InvokeAppId))
+	}
+	if logData.TargetAppId != "" {
+		record.AddAttributes(log.String("target_app_id", logData.TargetAppId))
+	}
+	if logData.TenantId != "" {
+		record.AddAttributes(log.String("tenant_id", logData.TenantId))
+	}
+
+	otelLogger.Emit(ctx, record)
+}
+
+func convertOTelSeverity(level loger.LogLevel) log.Severity {
+	switch level {
+	case loger.Error:
+		return log.SeverityError
+	case loger.Warn:
+		return log.SeverityWarn
+	case loger.Info:
+		return log.SeverityInfo
+	default:
+		return log.SeverityUndefined
+	}
+}
+
+func convertOTelSeverityText(level loger.LogLevel) string {
+	switch level {
+	case loger.Error:
+		return "ERROR"
+	case loger.Warn:
+		return "WARN"
+	case loger.Info:
+		return "INFO"
+	default:
+		return ""
 	}
 }
 
