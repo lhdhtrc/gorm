@@ -48,13 +48,11 @@ type Conf struct {
 	PrepareStmt bool `json:"prepare_stmt"`
 
 	// 是否启用SQL日志（调试建议开启，生产环境建议关闭）
-	// Logger 为 true 时启用 gorm logger，并可通过 WithLoggerConsole/WithLoggerHandle 控制输出。
+	// Logger 为 true 时启用 gorm logger，并可通过 WithLoggerConsole 控制输出。
 	Logger bool `json:"logger"`
 
 	// autoMigrate 控制 NewMysql/NewPostgres 是否执行 AutoMigrate。
 	autoMigrate bool
-	// loggerHandle 为日志回调句柄。
-	loggerHandle func(b []byte)
 	// loggerConsole 控制是否输出到控制台。
 	loggerConsole bool
 }
@@ -62,11 +60,6 @@ type Conf struct {
 // WithLoggerConsole 设置是否将 SQL 日志输出到控制台。
 func (c *Conf) WithLoggerConsole(state bool) {
 	c.loggerConsole = state
-}
-
-// WithLoggerHandle 设置日志回调，用于将 SQL 日志写入你的日志系统。
-func (c *Conf) WithLoggerHandle(handle func(b []byte)) {
-	c.loggerHandle = handle
 }
 
 // WithAutoMigrate 设置是否在初始化连接后自动迁移表结构。
