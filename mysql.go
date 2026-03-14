@@ -10,6 +10,7 @@ import (
 	"github.com/fireflycore/go-utils/network"
 	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/go-sql-driver/mysql"
+	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	mysql2 "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -98,6 +99,15 @@ func NewMysql(mc *MysqlConf, tables []interface{}) (*MysqlDB, error) {
 	})
 	// 打开失败直接返回错误。
 	if err != nil {
+		return nil, err
+	}
+
+	// 启用 otelgorm 插件（Tracing），如果配置了 Logger 开启。
+	// 这里默认始终开启 Tracing，只要初始化了 DB；是否上报取决于外部是否有 TracerProvider。
+	// 但为了稳妥，通常只有明确需要 observability 时才开启。
+	// 鉴于用户要求“全量替换”，且 go-micro 侧有开关控制，这里我们总是尝试挂载插件。
+	// 插件内部会检查全局 TracerProvider，如果没有注册则只会产生空操作，开销极小。
+	if err = db.Use(otelgorm.NewPlugin(otelgorm.WithDBName(mc.Database))); err != nil {
 		return nil, err
 	}
 

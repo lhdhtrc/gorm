@@ -9,6 +9,7 @@ import (
 	"github.com/fireflycore/go-utils/tlsx"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/uptrace/opentelemetry-go-extra/otelgorm"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -110,6 +111,11 @@ func NewPostgres(mc *PostgresConf, tables []interface{}) (*PostgresDB, error) {
 	// 打开失败时关闭 sqlDB，避免连接泄漏。
 	if err != nil {
 		_ = sqlDB.Close()
+		return nil, err
+	}
+
+	// 启用 otelgorm 插件（Tracing）
+	if err = db.Use(otelgorm.NewPlugin(otelgorm.WithDBName(mc.Database))); err != nil {
 		return nil, err
 	}
 
