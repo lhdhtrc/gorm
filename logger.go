@@ -32,6 +32,5 @@ func NewLogger(c *Conf) loger.Interface {
 		Database: c.Database,
 		// DatabaseType 记录库类型，便于日志聚合。
 		DatabaseType: c.Type,
-		// cfg.loggerHandle 为结构化日志回调句柄。
-	}, c.loggerHandle)
+	})
 }
