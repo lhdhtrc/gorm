@@ -2,7 +2,7 @@
 
 基于 gorm 的工程化封装，提供：
 - MySQL/Postgres 初始化（TLS、连接池、命名策略、可选 AutoMigrate）
-- SQL 日志输出（控制台/回调）
+- **全量可观测性集成**（OpenTelemetry Logs + Traces）
 - 常用模型基类（自增主键、UUIDv7 主键、软删除）
 - 常用 scope（分页）
 
@@ -36,7 +36,7 @@ func main() {
 			ConnMaxLifeTime: 600,
 			SingularTable:   true,
 			PrepareStmt:     true,
-			Logger:          true,
+			Logger:          true, // 开启后自动启用 OTel Logs
 		},
 	}
 
@@ -74,7 +74,7 @@ func main() {
 			ConnMaxLifeTime: 600,
 			SingularTable:   true,
 			PrepareStmt:     true,
-			Logger:          true,
+			Logger:          true, // 开启后自动启用 OTel Logs
 		},
 	}
 
@@ -102,7 +102,7 @@ func main() {
 - DisableForeignKeyConstraintWhenMigrating：AutoMigrate 时不创建物理外键
 - SkipDefaultTransaction：跳过 gorm 默认事务
 - PrepareStmt：启用预处理语句缓存
-- Logger：启用 SQL 日志（配合 WithLoggerConsole / WithLoggerHandle）
+- Logger：启用 SQL 日志（自动上报 OpenTelemetry Logs，配合 WithLoggerConsole 可同时输出到控制台）
 
 ### TLS
 
@@ -125,32 +125,31 @@ conf := &gormx.PostgresConf{
 }
 ```
 
-### SQL 日志回调
+## 可观测性 (Observability)
 
-开启 Logger 后，你可以把 SQL 日志输出到控制台，或写入自定义回调：
+gormx 已全量集成 OpenTelemetry，无需手动配置插件，只需确保你的应用已初始化全局 OTel Tracer/Logger Provider（例如使用 go-micro 框架）。
 
-```go
-conf := &gormx.MysqlConf{
-	Conf: gormx.Conf{
-		Type:     gormx.Mysql,
-		Address:  "127.0.0.1:3306",
-		Database: "demo",
-		Username: "root",
-		Password: "root",
-		Logger:   true,
-	},
-}
+### 1. Logs (日志审计)
 
-conf.WithLoggerConsole(true)
-conf.WithLoggerHandle(func(b []byte) {
-	_ = b
-})
-```
+开启 `Conf.Logger = true` 后，gormx 会自动通过 OTel Logs SDK 上报每条 SQL 执行记录（OperationLog）。
+- **Log Type**: `operation`
+- **Fields**: `database`, `statement`, `result`, `duration`, `rows`, `trace_id`, `user_id`, `app_id`, `tenant_id` 等。
+- **Destination**: 通常发往 OTel Collector -> Loki。
 
-回调收到的是一段 JSON bytes。若 gorm 操作使用了 db.WithContext(ctx)，并且 ctx 中包含 gRPC incoming metadata，则会尝试从 metadata 里读取链路字段：
-- gormx.TraceId（trace-id）
-- gormx.UserId（user-id）
-- gormx.AppId（app-id）
+**注意**：
+- 必须使用 `db.WithContext(ctx)` 执行 SQL，否则无法提取 TraceID 和 UserID。
+- UserID/TenantID 等字段会自动从 gRPC metadata 中提取（如果存在）。
+
+### 2. Traces (链路追踪)
+
+初始化数据库时，gormx 会自动挂载 `otelgorm` 插件。
+- 自动为每个 SQL 操作创建 Span。
+- Span 名称格式：`SELECT demo.users`。
+- **Destination**: 通常发往 OTel Collector -> Tempo/Jaeger。
+
+**注意**：
+- 如果未初始化全局 TracerProvider，插件会自动静默，不会报错。
+- 同样需要 `db.WithContext(ctx)` 才能将 SQL Span 正确关联到父 Trace。
 
 ## 模型基类
 
